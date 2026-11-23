@@ -15,6 +15,7 @@ def _load(path, mode="RGB"):
 def _attempt(folder):
     folder = Path(folder)
     uv, vis = _load(folder / "uv_texture.png"), _load(folder / "uv_visibility.png", "L")
+    albedo = _load(folder / "albedo_uv.png")
     render, mask = _load(folder / "render.png"), _load(folder / "render_mask.png", "L")
     if render is not None and mask is None:
         mask = render.sum(axis=2) > 0
@@ -24,7 +25,7 @@ def _attempt(folder):
         vis = uv.sum(axis=2) > 0
     elif vis is not None:
         vis = vis > 127
-    return {"uv": uv, "vis": vis, "render": render, "mask": mask}
+    return {"uv": uv, "vis": vis, "render": render, "mask": mask, "albedo": albedo}
 
 
 def _fit_size(image, size_wh, resample=Image.Resampling.BILINEAR):
@@ -38,6 +39,9 @@ def score_clean(folder, photo_path):
     if a["render"] is None:
         return {"status": "no_render"}
     h, w = a["render"].shape[:2]
+    reference = Path(folder) / "reference_photo.png"
+    if reference.is_file():  # methods that render in their own crop frame
+        photo_path = reference
     with Image.open(photo_path) as p:
         photo = _fit_size(np.asarray(p.convert("RGB")), (w, h), Image.Resampling.AREA)
     out = metrics.photo_metrics(photo, a["render"], a["mask"])
@@ -61,6 +65,9 @@ def score_pair(clean_folder, degraded_folder):
         out["uv_coverage_ref"] = metrics.uv_coverage(ref["vis"])
         out["uv_coverage_deg"] = metrics.uv_coverage(deg["vis"])
         out["uv_coverage_common"] = metrics.uv_coverage(ref["vis"] & deg["vis"])
+    if ref["albedo"] is not None and deg["albedo"] is not None and ref["albedo"].shape == deg["albedo"].shape:
+        valid = ref["albedo"].sum(axis=2) > 0
+        out["albedo_uv"] = metrics.all_metrics(ref["albedo"], deg["albedo"], valid)
     return out
 
 

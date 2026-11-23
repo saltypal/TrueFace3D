@@ -8,7 +8,7 @@ import nbformat as nbf
 
 ROOT = Path(__file__).resolve().parents[1]
 
-CLONE = '''REPO_URL = "https://github.com/<USER>/TrueFace3D.git"   # <- set before running
+CLONE = '''REPO_URL = "https://github.com/saltypal/TrueFace3D.git"   # <- set before running
 import os, subprocess, sys
 REPO = "/kaggle/working/TrueFace3D"
 if os.path.isdir(REPO + "/.git"):

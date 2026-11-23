@@ -55,6 +55,11 @@ def clone_upstreams(third, include_appearance=True):
         if (pixel / "replacement_code" / src).is_file() and (pixel / dst).parent.is_dir():
             shutil.copy2(pixel / "replacement_code" / src, pixel / dst)
     if include_appearance:
+        for name, (url, sha, rel) in assets.APPEARANCE_PINNED.items():
+            try:
+                report[name] = clone_pinned(url, sha, third / rel)
+            except (subprocess.CalledProcessError, RuntimeError) as exc:
+                report[name] = f"FAILED: {exc}"
         for name, (url, rel) in assets.UNPINNED.items():
             dest = third / rel
             try:
@@ -84,7 +89,7 @@ def link_assets(project=paths.PROJECT):
     third = paths.third_party_root()
     if third.resolve() != (project / "third_party").resolve():
         link(third, project / "third_party")
-    for rel in assets.REQUIRED_WEIGHTS + assets.OPTIONAL_WEIGHTS:
+    for rel in assets.REQUIRED_WEIGHTS + assets.APPEARANCE_WEIGHTS + assets.OPTIONAL_WEIGHTS:
         src = wroot / rel
         if src.is_file():
             link(src, project / rel)
@@ -94,6 +99,45 @@ def link_assets(project=paths.PROJECT):
     if data.resolve() != (project / "Data").resolve():
         link(data, project / "Data")
     return missing
+
+
+def prepare_appearance(project=paths.PROJECT):
+    """Unpack OpenDelight/TRUST weights into their checkouts and link TRUST's FLAME/DECA data files."""
+    import tarfile
+    import zipfile
+    third, done = paths.third_party_root(), {}
+    od_tar, od_dir = project / "checkpoints/opendelight.tar", third / "OpenDelight/pretrained"
+    if od_tar.is_file() and (third / "OpenDelight").is_dir() and not (od_dir / "opendelight/base_delight_network.pth").is_file():
+        od_dir.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(od_tar) as archive:
+            archive.extractall(od_dir, filter="data")
+    done["opendelight"] = (od_dir / "opendelight/base_delight_network.pth").is_file()
+    trust = third / "TRUST"
+    zip_path = project / "checkpoints/TRUST_models_BalanceAlb_version.zip"
+    if zip_path.is_file() and trust.is_dir() and not (trust / "data/TRUST_models_BalanceAlb_version").is_dir():
+        with zipfile.ZipFile(zip_path) as archive:
+            archive.extractall(trust / "data")
+    for src, name in ((project / "third_party/DECA/data/generic_model.pkl", "generic_model.pkl"),
+                      (project / "third_party/DECA/data/deca_model.tar", "deca_model.tar"),
+                      (project / "checkpoints/BalanceAlb_model.npz", "BalanceAlb_model.npz")):
+        if src.exists() and trust.is_dir():
+            link(src.resolve(), trust / "data" / name)
+    done["trust"] = all((trust / "data" / n).exists() for n in
+                        ("generic_model.pkl", "deca_model.tar", "BalanceAlb_model.npz",
+                         "TRUST_models_BalanceAlb_version/E_albedo_BalanceAlb.tar"))
+    # OpenDelight's face detector/aligner (ibug) keep weights in git-lfs, so clone with lfs then install editable.
+    for name in ("face_detection", "face_alignment"):
+        dest = third / f"ibug_{name}"
+        try:
+            if not dest.is_dir():
+                run(["git", "lfs", "install"], check=False)
+                run(["git", "clone", "--depth", "1", f"https://github.com/hhj1897/{name}.git", dest])
+                run(["git", "-C", dest, "lfs", "pull"], check=False)
+            run([sys.executable, "-m", "pip", "install", "-q", "-e", dest], check=False)
+            done[f"ibug_{name}"] = True
+        except subprocess.CalledProcessError as exc:
+            done[f"ibug_{name}"] = f"FAILED: {exc}"
+    return done
 
 
 def pip_install(requirements):
@@ -142,6 +186,9 @@ def main(argv=None):
                      "matplotlib", "pandas", "nbformat", "ninja"])
     report["upstreams"] = clone_upstreams(third, not args.skip_appearance)
     report["missing_weights"] = link_assets()
+    if not args.skip_appearance:
+        pip_install(["pyfacer"])
+        report["appearance"] = prepare_appearance()
     if not args.skip_build:
         report["builds"] = build_extensions(third)
     print(json.dumps(report, indent=2))

@@ -1,42 +1,32 @@
-"""TRUST albedo/lighting estimation (skin tone).
-
-UNVERIFIED: the entry script and arguments are searched for, not known. The upstream repo is cloned by
-src.kaggle.setup and the weights come from the private dataset (checkpoints/trust). If the repo, weights or an
-entry script are absent the result is not_run with a reason.
-"""
+"""TRUST (BalanceAlb): skin-tone-aware albedo with scene + face lighting. UNVERIFIED on Kaggle."""
 from pathlib import Path
 
-from ...kaggle import paths
 from .base import PYTHON, guarded, not_run, run_cli, third_party, upstream_ready
 
 REPO = "TRUST"
-WEIGHT = paths.PROJECT / "checkpoints/trust"
-ENTRY_CANDIDATES = ("demo.py", "test.py", "inference.py", "run.py")
+WORKER = Path(__file__).resolve().parents[1] / "trust_worker.py"
+
+
+def _weights():
+    data = third_party(REPO) / "data"
+    return [data / "TRUST_models_BalanceAlb_version/E_albedo_BalanceAlb.tar", data / "BalanceAlb_model.npz",
+            data / "generic_model.pkl", data / "deca_model.tar"]
 
 
 def available():
-    return upstream_ready(REPO, [WEIGHT])
-
-
-def _entry():
-    repo = third_party(REPO)
-    return next((repo / n for n in ENTRY_CANDIDATES if (repo / n).is_file()), None)
+    return upstream_ready(REPO, _weights())
 
 
 @guarded
-def _run(image_path, out_dir):
-    entry = _entry()
-    if entry is None:
-        return not_run(f"no entry script among {ENTRY_CANDIDATES} in {REPO}")
-    run_cli([PYTHON, entry, "--input", image_path, "--output", out_dir], third_party(REPO), out_dir / "upstream.log")
-    found = {p.suffix.lstrip("."): str(p) for p in sorted(Path(out_dir).glob("*")) if p.suffix in {".png", ".obj", ".jpg"}}
-    result = {"status": "ok", "outputs": found}
-    for name in ("uv_texture", "render"):
-        if (Path(out_dir) / f"{name}.png").is_file():
-            result[name] = str(Path(out_dir) / f"{name}.png")
-    return result
+def _run(image_path, out_dir, box=None, **_):
+    if box is None:
+        return not_run("TRUST needs the face box from the input metadata")
+    run_cli([PYTHON, WORKER, Path(image_path).resolve(), Path(out_dir).resolve(), *map(float, box)],
+            third_party(REPO), Path(out_dir) / "upstream.log")
+    names = ("albedo_uv", "render", "render_mask", "albedo_render", "clay", "reference_photo")
+    return {"status": "ok", **{n: str(Path(out_dir) / f"{n}.png") for n in names}}
 
 
-def run(image_path, out_dir):
+def run(image_path, out_dir, **kwargs):
     ok, why = available()
-    return _run(image_path, out_dir) if ok else not_run(why)
+    return _run(image_path, out_dir, **kwargs) if ok else not_run(why)

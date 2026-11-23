@@ -35,16 +35,17 @@ REQUIRED_WEIGHTS = [
     "checkpoints/insightface/models/buffalo_l/w600k_r50.onnx",
 ]
 
-# Appearance backends. Only OpenDelight weights exist locally; the rest must be added by hand.
-OPTIONAL_WEIGHTS = [
+# Appearance backends (staged by default). setup.py unpacks the archives into the upstream checkouts.
+APPEARANCE_WEIGHTS = [
     "checkpoints/opendelight.tar",
     "checkpoints/BalanceAlb_model.npz",
+    "third_party/DECA/data/FLAME_albedo_from_BFM.npz",  # built locally from BFM 2017
+    "checkpoints/TRUST_models_BalanceAlb_version.zip",
 ]
+OPTIONAL_WEIGHTS = []
 
-# Weights the appearance backends need that are NOT on this machine (blockers, not staged).
-MISSING_FOR_APPEARANCE = {
-    "trust": ["TRUST checkpoints/data folder (see upstream README)"],
-}
+# All appearance weights are now on disk.
+MISSING_FOR_APPEARANCE = {}
 
 # Pinned upstreams: name -> (url, sha, dir under third_party)
 PINNED = {
@@ -68,8 +69,10 @@ PINNED = {
                "Pixel3DMM/src/pixel3dmm/preprocessing/PIPNet"),
 }
 
-# Appearance upstreams: cloned at HEAD (no pin yet); setup records the resulting commit.
-UNPINNED = {
-    "TRUST": ("https://github.com/HavenFeng/TRUST.git", "TRUST"),
-    "OpenDelight": ("https://github.com/yxuhan/OpenDelight.git", "OpenDelight"),
+# Appearance upstreams, pinned to the commits inspected on 2026-11-23.
+APPEARANCE_PINNED = {
+    "TRUST": ("https://github.com/HavenFeng/TRUST.git", "f06cdd27d1748a8520d2ff340e4d14f74da847cf", "TRUST"),
+    "OpenDelight": ("https://github.com/yxuhan/OpenDelight.git", "431ad736371dcfbf2ce29cfa84b04512df4ea107",
+                    "OpenDelight"),
 }
+UNPINNED = {}

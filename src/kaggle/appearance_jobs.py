@@ -30,7 +30,7 @@ def run_job(job):
         return json.loads(done.read_text(encoding="utf-8"))
     case = next(c for c in installed_cases(paths.data_root()) if c.image_key == job["key"])
     image, meta = _input(case, VARIANTS[job["variant"]], Path(job["out"]) / "inputs" / case.subject_id)
-    result = backends.load(job["method"]).run(image, folder)
+    result = backends.load(job["method"]).run(image, folder, box=meta.get("face_box"))
     result.update(job=job, input=str(image), input_metadata=meta)
     if result["status"] == "ok" and job["variant"] == "original":
         result["metrics_vs_photo"] = evaluate.score_clean(folder, case.image_path)

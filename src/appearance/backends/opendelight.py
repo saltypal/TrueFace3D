@@ -1,42 +1,46 @@
-"""OpenDelight removes baked lighting from a face photo (delighting).
+"""OpenDelight: image-space delighting (diffuse albedo) in the original photo frame. UNVERIFIED on Kaggle.
 
-UNVERIFIED: the entry script and arguments are searched for, not known. The upstream repo is cloned by
-src.kaggle.setup and the weights come from the private dataset (checkpoints/opendelight.tar). If the repo, weights or an
-entry script are absent the result is not_run with a reason.
+Runs the upstream test.py on a one-image folder. Its pipeline detects the face (ibug RetinaFace, threshold 0.8),
+mats it, parses skin with facer, aligns, delights and maps the result back to the input frame (RGBA).
+A failed detection on tiny faces is recorded as a failed attempt.
 """
 from pathlib import Path
+import shutil
 
-from ...kaggle import paths
+import numpy as np
+from PIL import Image
+
 from .base import PYTHON, guarded, not_run, run_cli, third_party, upstream_ready
 
 REPO = "OpenDelight"
-WEIGHT = paths.PROJECT / "checkpoints/opendelight.tar"
-ENTRY_CANDIDATES = ("demo.py", "test.py", "inference.py", "run.py")
+
+
+def _weights():
+    root = third_party(REPO) / "pretrained/opendelight"
+    return [root / "base_delight_network.pth", root / "unet_enhancer.pth"]
 
 
 def available():
-    return upstream_ready(REPO, [WEIGHT])
-
-
-def _entry():
-    repo = third_party(REPO)
-    return next((repo / n for n in ENTRY_CANDIDATES if (repo / n).is_file()), None)
+    return upstream_ready(REPO, _weights())
 
 
 @guarded
-def _run(image_path, out_dir):
-    entry = _entry()
-    if entry is None:
-        return not_run(f"no entry script among {ENTRY_CANDIDATES} in {REPO}")
-    run_cli([PYTHON, entry, "--input", image_path, "--output", out_dir], third_party(REPO), out_dir / "upstream.log")
-    found = {p.suffix.lstrip("."): str(p) for p in sorted(Path(out_dir).glob("*")) if p.suffix in {".png", ".obj", ".jpg"}}
-    result = {"status": "ok", "outputs": found}
-    for name in ("uv_texture", "render"):
-        if (Path(out_dir) / f"{name}.png").is_file():
-            result[name] = str(Path(out_dir) / f"{name}.png")
-    return result
+def _run(image_path, out_dir, **_):
+    out_dir = Path(out_dir).resolve()
+    inputs, work = out_dir / "od_input", out_dir / "od_work"
+    inputs.mkdir(parents=True, exist_ok=True)
+    name = "input.png"
+    Image.open(image_path).convert("RGB").save(inputs / name)
+    run_cli([PYTHON, "test.py", "--data_root", inputs, "--save_root", work, "--device", "0"],
+            third_party(REPO), out_dir / "upstream.log")
+    rgba = np.asarray(Image.open(work / "opendelight/delight" / name).convert("RGBA"))
+    Image.fromarray(rgba[..., :3]).save(out_dir / "render.png")
+    Image.fromarray(rgba[..., 3]).save(out_dir / "render_mask.png")
+    shutil.copy(inputs / name, out_dir / "reference_photo.png")
+    return {"status": "ok", "render": str(out_dir / "render.png"), "render_mask": str(out_dir / "render_mask.png"),
+            "reference_photo": str(out_dir / "reference_photo.png"), "space": "image (input frame)"}
 
 
-def run(image_path, out_dir):
+def run(image_path, out_dir, **kwargs):
     ok, why = available()
-    return _run(image_path, out_dir) if ok else not_run(why)
+    return _run(image_path, out_dir, **kwargs) if ok else not_run(why)

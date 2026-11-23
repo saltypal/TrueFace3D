@@ -2,6 +2,7 @@
 
 Dry run (default) prints a manifest and total size; ``--build`` copies the files.
 """
+import os
 import argparse
 import json
 from pathlib import Path
@@ -36,7 +37,7 @@ def manifest(project=paths.PROJECT, data_root=None, include_optional=False, coun
                           (case.scan_landmark_path, "scan landmarks")):
             if src is not None:
                 add(src, "Data/" + Path(src).resolve().relative_to(data_root.resolve()).as_posix(), kind)
-    for rel in assets.REQUIRED_WEIGHTS + (assets.OPTIONAL_WEIGHTS if include_optional else []):
+    for rel in assets.REQUIRED_WEIGHTS + assets.APPEARANCE_WEIGHTS + (assets.OPTIONAL_WEIGHTS if include_optional else []):
         add(project / rel, f"weights/{rel}", "weights")
     return rows, clean, real
 
@@ -58,7 +59,7 @@ def write_metadata(out, username, clean, real):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=paths.PROJECT / "kaggle_staging" / DATASET_SLUG)
-    parser.add_argument("--username", default="<KAGGLE_USER_A>")
+    parser.add_argument("--username", default="satyapaladugu")
     parser.add_argument("--build", action="store_true", help="copy files (default is a dry run)")
     parser.add_argument("--with-optional", action="store_true", help="also stage OpenDelight/TRUST extras")
     parser.add_argument("--data-root", type=Path)
@@ -81,7 +82,10 @@ def main(argv=None):
         dst = args.output / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         if src.is_file() and not dst.is_file():
-            shutil.copy2(src, dst)
+            try:
+                os.link(src, dst)  # same volume: no extra disk space
+            except OSError:
+                shutil.copy2(src, dst)
     write_metadata(args.output, args.username, clean, real)
     print("Staged at", args.output, "(not uploaded)")
     return rows

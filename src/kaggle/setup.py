@@ -140,8 +140,39 @@ def prepare_appearance(project=paths.PROJECT):
     return done
 
 
+def install_chumpy():
+    """chumpy 0.70's setup.py imports old pip internals and fails on modern pip/Python 3.13.
+
+    The package is pure Python, so copy it into site-packages from the sdist. The numpy/inspect
+    shims it needs at import time are applied by RealDenseFace's common/fix_chumpy.py and our workers.
+    """
+    import site
+    import tarfile
+    import tempfile
+    if subprocess.run([sys.executable, "-c", "import importlib.util as u; exit(u.find_spec('chumpy') is None)"]).returncode == 0:
+        return "already installed"
+    with tempfile.TemporaryDirectory() as tmp:
+        run([sys.executable, "-m", "pip", "download", "-q", "--no-deps", "--no-binary", ":all:", "chumpy==0.70", "-d", tmp])
+        archive = next(Path(tmp).glob("chumpy-*.tar.gz"))
+        with tarfile.open(archive) as tar:
+            tar.extractall(tmp, filter="data")
+        package = next(Path(tmp).glob("chumpy-*/chumpy"))
+        target = Path(site.getsitepackages()[0]) / "chumpy"
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.copytree(package, target)
+    return f"copied to {target}"
+
+
 def pip_install(requirements):
-    run([sys.executable, "-m", "pip", "install", "-q", *requirements])
+    """Install in one go; if that fails, retry one by one so a single bad package can't block the rest."""
+    if run([sys.executable, "-m", "pip", "install", "-q", *requirements], check=False).returncode == 0:
+        return {}
+    failed = {}
+    for package in requirements:
+        if run([sys.executable, "-m", "pip", "install", "-q", package], check=False).returncode:
+            failed[package] = "pip install failed"
+    return failed
 
 
 def build_extensions(third, wheels=WHEELS):
@@ -184,10 +215,14 @@ def main(argv=None):
     third.mkdir(parents=True, exist_ok=True)
     report = {"paths": paths.describe()}
     if not args.skip_pip:
-        pip_install(["trimesh", "scipy", "scikit-image", "opencv-python-headless", "timm", "roma", "PyYAML",
-                     "chumpy", "onnxruntime-gpu", "insightface", "lpips", "loguru", "environs", "mediapy",
+        report["pip_failed"] = pip_install(["trimesh", "scipy", "scikit-image", "opencv-python-headless", "timm", "roma", "PyYAML",
+                     "onnxruntime-gpu", "insightface", "lpips", "loguru", "environs", "mediapy",
                      "tyro", "distinctipy", "pytorch_lightning", "einops", "wandb", "pyvista", "dreifus",
                      "matplotlib", "pandas", "nbformat", "ninja"])
+        try:
+            report["chumpy"] = install_chumpy()
+        except (subprocess.CalledProcessError, StopIteration, OSError) as exc:
+            report["chumpy"] = f"FAILED: {exc}"
     report["upstreams"] = clone_upstreams(third, not args.skip_appearance)
     report["missing_weights"] = link_assets()
     if not args.skip_appearance:

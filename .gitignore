@@ -45,3 +45,5 @@ CHAPTER_ROADMAP.md
 IMPLEMENTATION_PLAN.md
 Journal.md
 KAGGLE_RUNS.md
+# Local run logs
+experiments/**/*.log

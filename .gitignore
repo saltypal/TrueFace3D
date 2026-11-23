@@ -1,0 +1,47 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+
+# Original PDFs and extraction/inspection artifacts stay in this local archive.
+# Keep the source manifest, notes, plan, and download tools version-controlled.
+Papers/pdfs/
+Papers/figures/
+Papers/evidence/*.pages.json
+Papers/evidence/alpha_*.txt
+Papers/evidence/code_*.txt
+
+# Future private/large artifacts must be stored separately from source.
+data/
+checkpoints/
+results/
+!results/README.md
+ui/node_modules/
+manual_tests/photos/
+manual_tests/outputs/
+
+third_party/
+experiments/**/runs/
+.venv-assets/
+.venv-vit/
+
+# Licensed NoW data must never reach the public repo (Windows matching is case-insensitive; Linux is not).
+Data/
+# Executed notebooks with embedded NoW faces stay local. New notebooks are committed without outputs.
+notebooks/00a_shape_benchmark.ipynb
+notebooks/01_geometry_tutorial.ipynb
+notebooks/02_geometry_benchmark.ipynb
+notebooks/03_degradation_and_prior_correction.ipynb
+notebooks/04_one_photo_scan_error.ipynb
+notebooks/archive/
+kaggle_staging/
+kaggle_outputs/
+
+.claude/
+AGENTS.md
+CHAPTER_ROADMAP.md
+IMPLEMENTATION_PLAN.md
+Journal.md
+KAGGLE_RUNS.md

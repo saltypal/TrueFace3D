@@ -1,0 +1,14 @@
+{
+  "checked_at_utc": "2026-10-23T11:24:47.027108+00:00",
+  "scope": "static_plan_coverage_links_json_and_dependency_DAG_only",
+  "paper_entries": 44,
+  "components": 6,
+  "gates": 9,
+  "markdown_documents": 19,
+  "checked_local_links": 171,
+  "release_checks": 16,
+  "plan_state_sha256": "f3abf8df70bda5b9d5ca48eb26180e7134b662b09ac5842d1dbca83c62444e3b",
+  "errors": [],
+  "model_execution_validated": false,
+  "external_link_health_validated_by_this_script": false
+}

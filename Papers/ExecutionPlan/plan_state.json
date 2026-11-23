@@ -1,0 +1,198 @@
+{
+  "plan_version": "2.0",
+  "prepared_on": "2026-10-23",
+  "execution_days": 14,
+  "scope": "single_photo_parametric_face_pretrained_first",
+  "retraining_in_14_day_scope": false,
+  "model_execution_performed": false,
+  "measured_quality_results_present": false,
+  "canonical_plan": "README.md",
+  "components": [
+    {
+      "id": "C1",
+      "name": "Geometry",
+      "design": "components/C1_GEOMETRY.md",
+      "candidate": "RealDenseFace",
+      "challenger": "Pixel3DMM",
+      "state": "planned",
+      "gate": "G1"
+    },
+    {
+      "id": "C2",
+      "name": "Appearance",
+      "design": "components/C2_APPEARANCE.md",
+      "candidate": "OpenDelight",
+      "challenger": "raw_projected_color_and_one_eligible_material_model",
+      "state": "planned",
+      "gate": "G2"
+    },
+    {
+      "id": "C3",
+      "name": "Detail",
+      "design": "components/C3_DETAIL.md",
+      "candidate": "DECA_detail",
+      "challenger": "coarse_only_and_HRN_native_if_eligible",
+      "state": "planned",
+      "gate": "G3"
+    },
+    {
+      "id": "C4",
+      "name": "Eyes",
+      "design": "components/C4_EYES.md",
+      "candidate": "explicit_parametric_adaptation",
+      "challenger": "painted_opaque_eye",
+      "state": "planned",
+      "gate": "G4"
+    },
+    {
+      "id": "C5",
+      "name": "Differentiable fitting",
+      "design": "components/C5_FITTING.md",
+      "candidate": "bounded_nvdiffrast_fitting",
+      "challenger": "fixed_scene_and_robust_loss_only",
+      "state": "planned",
+      "gate": "G5b"
+    },
+    {
+      "id": "C6",
+      "name": "Skin shading and final rendering",
+      "design": "components/C6_RENDERING.md",
+      "candidate": "Cycles_Principled",
+      "challenger": "same_scene_diffuse_only",
+      "state": "planned",
+      "gate": "G6"
+    }
+  ],
+  "gates": [
+    {
+      "id": "G0",
+      "requires": [],
+      "state": "planned",
+      "evidence": "actual_device_assets_and_input_manifest"
+    },
+    {
+      "id": "G1",
+      "requires": [
+        "G0"
+      ],
+      "state": "planned",
+      "evidence": "native_geometry_projection_reload_and_cost_and_parametric_regeneration_controls"
+    },
+    {
+      "id": "G2",
+      "requires": [
+        "G1"
+      ],
+      "state": "planned",
+      "evidence": "appearance_alignment_UV_color_masks_or_labeled_captured_texture_fallback"
+    },
+    {
+      "id": "G3",
+      "requires": [
+        "G1"
+      ],
+      "state": "planned",
+      "evidence": "validated_detail_transfer_or_recorded_defer"
+    },
+    {
+      "id": "G4",
+      "requires": [
+        "G1"
+      ],
+      "state": "planned",
+      "evidence": "eye_attachment_cues_optics_or_declared_generic_fallback"
+    },
+    {
+      "id": "G6_fixture",
+      "requires": [
+        "G1"
+      ],
+      "state": "planned",
+      "evidence": "minimal_fixed_scene_camera_and_material_semantics_early_export_roundtrip",
+      "target_day": "3_to_5_at_latest"
+    },
+    {
+      "id": "G5a",
+      "requires": [
+        "G0"
+      ],
+      "state": "planned",
+      "evidence": "synthetic_rasterizer_camera_UV_and_gradient_checks"
+    },
+    {
+      "id": "G5b",
+      "requires": [
+        "G2",
+        "G6_fixture",
+        "G5a"
+      ],
+      "state": "planned",
+      "evidence": "development_comparison_and_final_Cycles_transfer_check_with_frozen_policy",
+      "conditional_requirements": {
+        "detail_refinement_enabled": [
+          "G3"
+        ]
+      }
+    },
+    {
+      "id": "G6",
+      "requires": [
+        "G1",
+        "G2",
+        "G6_fixture"
+      ],
+      "state": "planned",
+      "evidence": "complete_validated_or_declared_fallback_scene_export_and_native_renders_with_tested_parametric_regeneration_and_capability_manifest",
+      "optional_inputs": {
+        "G3": {
+          "enabled_requires": "passed",
+          "disabled_fallback": "coarse_geometry_no_detail"
+        },
+        "G4": {
+          "enabled_requires": "passed",
+          "disabled_fallback": "declared_generic_or_omitted_eye_asset"
+        },
+        "G5b": {
+          "enabled_requires": "passed",
+          "disabled_fallback": "fixed_scene_without_refinement"
+        }
+      }
+    }
+  ],
+  "review": {
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning": "xhigh",
+    "actual_model": "gpt-6.1-sol",
+    "actual_reasoning": "xhigh",
+    "state": "completed_with_six_design_corrections_recorded",
+    "reviewed_draft_markdown_documents": 18,
+    "lead_corrected_findings": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6"
+    ],
+    "empirical_validation_performed": false,
+    "report": "10_REVIEW_AND_VALIDATION.md"
+  },
+  "gate_state_semantics": {
+    "allowed_states": [
+      "planned",
+      "running",
+      "passed",
+      "passed_with_fallback",
+      "failed",
+      "deferred"
+    ],
+    "required_dependency_states": [
+      "passed",
+      "passed_with_fallback"
+    ],
+    "G1_requires_actual_parametric_geometry": true,
+    "fallback_requires_reason_and_artifact_metadata": true,
+    "comparison_pass_does_not_imply_upgrade_accepted": true,
+    "refinement_adoption_requires_final_cycles_validation": true
+  }
+}

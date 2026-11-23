@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TrueFace3D Scratchpad</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+    {"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <main>
+    <header><p>TrueFace3D / Chapter 1</p><h1>Geometry scratchpad</h1>
+    <p>Move the top vertex, then export and reopen the GLB to see what the file saved.</p></header>
+    <div class="workspace">
+      <section aria-label="Preview">
+        <div id="viewport"><img id="image-preview" alt="Saved render" hidden></div>
+        <p id="status" role="status">Starting viewer…</p>
+      </section>
+      <aside>
+        <h2>Triangle controls</h2>
+        <label for="vertex-x">Top vertex X <output id="vertex-value">0.00</output></label>
+        <input id="vertex-x" type="range" min="-1.4" max="1.4" step="0.05" value="0">
+        <label><input id="wireframe" type="checkbox"> Wireframe</label>
+        <div class="buttons"><button id="reset">Reset triangle</button><button id="export">Export GLB</button></div>
+        <label for="open-file">Open a GLB or PNG</label>
+        <input id="open-file" type="file" accept=".glb,.png">
+        <h2>GLB inspector</h2>
+        <pre id="inspection">Export or open a GLB to inspect it.</pre>
+      </aside>
+    </div>
+  </main>
+  <script type="module" src="./scratchpad.js"></script>
+</body>
+</html>

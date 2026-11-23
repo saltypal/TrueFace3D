@@ -1,0 +1,359 @@
+[
+  {
+    "id": "01_RealDenseFace",
+    "slug": "RealDenseFace",
+    "area": "geometry",
+    "arxiv": "2608.09238",
+    "url": "https://arxiv.org/pdf/2608.09238",
+    "title": "RealDenseFace: Real-time Monocular 3D Face Reconstruction from Dense UV-space Priors"
+  },
+  {
+    "id": "02_FLAME",
+    "slug": "FLAME",
+    "area": "geometry",
+    "arxiv": null,
+    "url": "https://3dvar.com/Li2017Learning.pdf",
+    "title": "Learning a model of facial shape and expression from 4D scans",
+    "original_attempt_url": "https://ps.is.tuebingen.mpg.de/uploads_file/attachment/attachment/400/paper.pdf",
+    "primary_paper_url": "https://flame.is.tue.mpg.de/",
+    "retrieval_note": "Author PDF endpoint returned HTML; verified original downloaded from mirror."
+  },
+  {
+    "id": "03_MICA",
+    "slug": "MICA",
+    "area": "geometry",
+    "arxiv": "2204.06607",
+    "url": "https://arxiv.org/pdf/2204.06607",
+    "title": "Towards Metrical Reconstruction of Human Faces"
+  },
+  {
+    "id": "04_Pixel3DMM",
+    "slug": "Pixel3DMM",
+    "area": "geometry",
+    "arxiv": "2505.00615",
+    "url": "https://arxiv.org/pdf/2505.00615",
+    "title": "Pixel3DMM: Versatile Screen-Space Priors for Single-Image 3D Face Reconstruction"
+  },
+  {
+    "id": "05_FlowFace",
+    "slug": "FlowFace",
+    "area": "geometry",
+    "arxiv": "2404.09819",
+    "url": "https://arxiv.org/pdf/2404.09819",
+    "title": "3D Face Tracking from 2D Video through Iterative Dense UV to Image Flow"
+  },
+  {
+    "id": "06_SMIRK",
+    "slug": "SMIRK",
+    "area": "geometry",
+    "arxiv": "2404.04104",
+    "url": "https://arxiv.org/pdf/2404.04104",
+    "title": "SMIRK: 3D Facial Expressions through Analysis-by-Neural-Synthesis"
+  },
+  {
+    "id": "07_DECA",
+    "slug": "DECA",
+    "area": "detail",
+    "arxiv": "2012.04012",
+    "url": "https://arxiv.org/pdf/2012.04012",
+    "title": "Learning an Animatable Detailed 3D Face Model from In-The-Wild Images"
+  },
+  {
+    "id": "08_EMOCA",
+    "slug": "EMOCA",
+    "area": "geometry",
+    "arxiv": "2204.11312",
+    "url": "https://arxiv.org/pdf/2204.11312",
+    "title": "EMOCA: Emotion Driven Monocular Face Capture and Animation"
+  },
+  {
+    "id": "09_HRN",
+    "slug": "HRN",
+    "area": "detail",
+    "arxiv": "2302.14434",
+    "url": "https://arxiv.org/pdf/2302.14434",
+    "title": "A Hierarchical Representation Network for Accurate and Detailed Face Reconstruction from In-The-Wild Images"
+  },
+  {
+    "id": "10_HiFace",
+    "slug": "HiFace",
+    "area": "detail",
+    "arxiv": "2303.11225",
+    "url": "https://arxiv.org/pdf/2303.11225",
+    "title": "HiFace: High-Fidelity 3D Face Reconstruction by Learning Static and Dynamic Details"
+  },
+  {
+    "id": "11_MeshLAM",
+    "slug": "MeshLAM",
+    "area": "geometry",
+    "arxiv": "2604.22865",
+    "url": "https://arxiv.org/pdf/2604.22865",
+    "title": "MeshLAM: Feed-Forward One-Shot Animatable Textured Mesh Avatar Reconstruction"
+  },
+  {
+    "id": "12_OpenDelight",
+    "slug": "OpenDelight",
+    "area": "appearance",
+    "arxiv": "2605.05636",
+    "url": "https://arxiv.org/pdf/2605.05636",
+    "title": "Learning a Delighting Prior for Facial Appearance Capture in the Wild"
+  },
+  {
+    "id": "13_MARCUS",
+    "slug": "MARCUS",
+    "area": "appearance",
+    "arxiv": "2606.28144",
+    "url": "https://arxiv.org/pdf/2606.28144",
+    "title": "Monocular Avatar Reconstruction via Cascaded Diffusion Priors and UV-Space Differentiable Shading"
+  },
+  {
+    "id": "14_MoSAR",
+    "slug": "MoSAR",
+    "area": "appearance",
+    "arxiv": "2312.13091",
+    "url": "https://arxiv.org/pdf/2312.13091",
+    "title": "MoSAR: Monocular Semi-Supervised Model for Avatar Reconstruction using Differentiable Shading"
+  },
+  {
+    "id": "15_Relightify",
+    "slug": "Relightify",
+    "area": "appearance",
+    "arxiv": "2305.06077",
+    "url": "https://arxiv.org/pdf/2305.06077",
+    "title": "Relightify: Relightable 3D Faces from a Single Image via Diffusion Models"
+  },
+  {
+    "id": "16_AvatarMePlusPlus",
+    "slug": "AvatarMePlusPlus",
+    "area": "appearance",
+    "arxiv": "2112.05957",
+    "url": "https://arxiv.org/pdf/2112.05957",
+    "title": "AvatarMe++: Facial Shape and BRDF Inference with Photorealistic Rendering-Aware GANs"
+  },
+  {
+    "id": "17_ID2Reflectance",
+    "slug": "ID2Reflectance",
+    "area": "appearance",
+    "arxiv": "2404.00301",
+    "url": "https://arxiv.org/pdf/2404.00301",
+    "title": "Monocular Identity-Conditioned Facial Reflectance Reconstruction"
+  },
+  {
+    "id": "18_ReflectanceMM",
+    "slug": "ReflectanceMM",
+    "area": "appearance",
+    "arxiv": "2303.11686",
+    "url": "https://arxiv.org/pdf/2303.11686",
+    "title": "Learning a 3D Morphable Face Reflectance Model from Low-cost Data"
+  },
+  {
+    "id": "19_S3Face",
+    "slug": "S3Face",
+    "area": "appearance",
+    "arxiv": null,
+    "url": "https://openaccess.thecvf.com/content/CVPR2025/papers/Ren_S3-Face_SSS-Compliant_Facial_Reflectance_Estimation_via_Diffusion_Priors_CVPR_2025_paper.pdf",
+    "title": "S3-Face: SSS-Compliant Facial Reflectance Estimation via Diffusion Priors"
+  },
+  {
+    "id": "20_HAFMat",
+    "slug": "HAFMat",
+    "area": "appearance",
+    "arxiv": "2606.16323",
+    "url": "https://arxiv.org/pdf/2606.16323",
+    "title": "HAFMat: Hybrid Priors Guided Adaptive Fusion for Single-Image Human Material Estimation"
+  },
+  {
+    "id": "21_EyeCapture",
+    "slug": "EyeCapture",
+    "area": "eyes",
+    "arxiv": null,
+    "url": "https://cgl.ethz.ch/Downloads/Publications/Papers/2014/Pas14a/Pas14a.pdf",
+    "title": "High-Quality Capture of Eyes"
+  },
+  {
+    "id": "22_ParametricEyes",
+    "slug": "ParametricEyes",
+    "area": "eyes",
+    "arxiv": null,
+    "url": "https://cgl.ethz.ch/Downloads/Publications/Papers/2016/Pas16a/Pas16a.pdf",
+    "title": "Lightweight Eye Capture Using a Parametric Model"
+  },
+  {
+    "id": "23_EyeNeRF",
+    "slug": "EyeNeRF",
+    "area": "eyes",
+    "arxiv": "2308.00773",
+    "url": "https://arxiv.org/pdf/2308.00773",
+    "title": "High-Fidelity Eye Animatable Neural Radiance Fields for Human Face",
+    "method": "DeNeRF",
+    "filename_note": "Stable archive ID retained; this is DeNeRF, not the separate EyeNeRF paper."
+  },
+  {
+    "id": "24_AudioEar",
+    "slug": "AudioEar",
+    "area": "ears",
+    "arxiv": "2301.12613",
+    "url": "https://arxiv.org/pdf/2301.12613",
+    "title": "AudioEar: Single-View Ear Reconstruction for Personalized Spatial Audio"
+  },
+  {
+    "id": "25_Nvdiffrast",
+    "slug": "Nvdiffrast",
+    "area": "rendering",
+    "arxiv": "2011.03277",
+    "url": "https://arxiv.org/pdf/2011.03277",
+    "title": "Modular Primitives for High-Performance Differentiable Rendering"
+  },
+  {
+    "id": "26_Mitsuba2",
+    "slug": "Mitsuba2",
+    "area": "rendering",
+    "arxiv": null,
+    "url": "https://rgl.s3.eu-central-1.amazonaws.com/media/papers/NimierDavidVicini2019Mitsuba2_7.pdf",
+    "title": "Mitsuba 2: A Retargetable Forward and Inverse Renderer"
+  },
+  {
+    "id": "27_DisneyBRDF",
+    "slug": "DisneyBRDF",
+    "area": "rendering",
+    "arxiv": null,
+    "url": "https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf",
+    "title": "Physically Based Shading at Disney"
+  },
+  {
+    "id": "28_SubsurfaceTransport",
+    "slug": "SubsurfaceTransport",
+    "area": "rendering",
+    "arxiv": null,
+    "url": "https://www.cs.cornell.edu/courses/cs667/2005sp/readings/jensen01.pdf",
+    "title": "A Practical Model for Subsurface Light Transport"
+  },
+  {
+    "id": "29_FaceScape",
+    "slug": "FaceScape",
+    "area": "datasets",
+    "arxiv": "2003.13989",
+    "url": "https://arxiv.org/pdf/2003.13989",
+    "title": "FaceScape: a Large-scale High Quality 3D Face Dataset and Detailed Riggable 3D Face Prediction"
+  },
+  {
+    "id": "30_NeRSemble",
+    "slug": "NeRSemble",
+    "area": "datasets",
+    "arxiv": "2305.03027",
+    "url": "https://arxiv.org/pdf/2305.03027",
+    "title": "NeRSemble: Multi-view Radiance Field Reconstruction of Human Heads"
+  },
+  {
+    "id": "31_NPHM",
+    "slug": "NPHM",
+    "area": "datasets",
+    "arxiv": "2212.02761",
+    "url": "https://arxiv.org/pdf/2212.02761",
+    "title": "Learning Neural Parametric Head Models"
+  },
+  {
+    "id": "32_Multiface",
+    "slug": "Multiface",
+    "area": "datasets",
+    "arxiv": "2207.11243",
+    "url": "https://arxiv.org/pdf/2207.11243",
+    "title": "Multiface: A Dataset for Neural Face Rendering"
+  },
+  {
+    "id": "33_H3DNet",
+    "slug": "H3DNet",
+    "area": "datasets",
+    "arxiv": "2107.12512",
+    "url": "https://arxiv.org/pdf/2107.12512",
+    "title": "H3D-Net: Few-Shot High-Fidelity 3D Head Reconstruction"
+  },
+  {
+    "id": "34_RingNet_NoW",
+    "slug": "RingNet_NoW",
+    "area": "datasets",
+    "arxiv": "1905.06817",
+    "url": "https://arxiv.org/pdf/1905.06817",
+    "title": "Learning to Regress 3D Face Shape and Expression from an Image without 3D Supervision"
+  },
+  {
+    "id": "35_CodecAvatarStudio_AVA256",
+    "slug": "CodecAvatarStudio_AVA256",
+    "area": "datasets",
+    "arxiv": null,
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2024/file/9712b78386cebdc3db7f1a48c2d20edb-Paper-Datasets_and_Benchmarks_Track.pdf",
+    "title": "Codec Avatar Studio: Paired Human Captures for Complete, Driveable, and Generalizable Avatars"
+  },
+  {
+    "id": "36_CodeFormer",
+    "slug": "CodeFormer",
+    "area": "restoration",
+    "arxiv": "2206.11253",
+    "url": "https://arxiv.org/pdf/2206.11253",
+    "title": "Towards Robust Blind Face Restoration with Codebook Lookup Transformer"
+  },
+  {
+    "id": "37_GFPGAN",
+    "slug": "GFPGAN",
+    "area": "restoration",
+    "arxiv": "2101.04061",
+    "url": "https://arxiv.org/pdf/2101.04061",
+    "title": "Towards Real-World Blind Face Restoration with Generative Facial Prior"
+  },
+  {
+    "id": "38_RealESRGAN",
+    "slug": "RealESRGAN",
+    "area": "restoration",
+    "arxiv": "2107.10833",
+    "url": "https://arxiv.org/pdf/2107.10833",
+    "title": "Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data"
+  },
+  {
+    "id": "39_MonoNPHM",
+    "slug": "MonoNPHM",
+    "area": "video_later",
+    "arxiv": "2312.06740",
+    "url": "https://arxiv.org/pdf/2312.06740",
+    "title": "MonoNPHM: Dynamic Head Reconstruction from Monocular Videos"
+  },
+  {
+    "id": "40_SFDM",
+    "slug": "SFDM",
+    "area": "multiview_reference",
+    "arxiv": "2312.06085",
+    "url": "https://arxiv.org/pdf/2312.06085",
+    "title": "SFDM: Robust Decomposition of Geometry and Reflectance for Realistic Face Rendering from Sparse-view Images"
+  },
+  {
+    "id": "41_MonocularAppearance",
+    "slug": "MonocularAppearance",
+    "area": "video_later",
+    "arxiv": "2412.12765",
+    "url": "https://arxiv.org/pdf/2412.12765",
+    "title": "Monocular Facial Appearance Capture in the Wild"
+  },
+  {
+    "id": "42_BecomingLit",
+    "slug": "BecomingLit",
+    "area": "video_later",
+    "arxiv": "2506.06271",
+    "url": "https://arxiv.org/pdf/2506.06271",
+    "title": "BecomingLit: Relightable Gaussian Avatars with Hybrid Neural Shading"
+  },
+  {
+    "id": "43_ReEnFP",
+    "slug": "ReEnFP",
+    "area": "detail",
+    "arxiv": null,
+    "url": "https://openaccess.thecvf.com/content/WACV2023/papers/Sun_ReEnFP_Detail-Preserving_Face_Reconstruction_by_Encoding_Facial_Priors_WACV_2023_paper.pdf",
+    "title": "ReEnFP: Detail-Preserving Face Reconstruction by Encoding Facial Priors"
+  },
+  {
+    "id": "44_Pix2NPHM",
+    "slug": "Pix2NPHM",
+    "area": "geometry",
+    "arxiv": "2512.17773",
+    "url": "https://arxiv.org/pdf/2512.17773",
+    "title": "Pix2NPHM: Learning to Regress NPHM Reconstructions From a Single Image"
+  }
+]

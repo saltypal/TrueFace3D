@@ -177,7 +177,7 @@ def pip_install(requirements):
 
 def build_extensions(third, wheels=WHEELS):
     """Build nvdiffrast, flame_solver and PyTorch3D for T4 (sm_75); reuse wheels if present."""
-    env = {**os.environ, "TORCH_CUDA_ARCH_LIST": ARCH, "MAX_JOBS": "4"}
+    env = {**os.environ, "TORCH_CUDA_ARCH_LIST": ARCH, "MAX_JOBS": "4", "FORCE_CUDA": "1"}
     # CUDA >= 13 defaults to -static-global-template-stub=true, which breaks flame_solver's cross-file
     # template kernels (undefined AssembleExpPoseRegJacobianCuda<50/100> at link time).
     if (getattr(__import__("torch").version, "cuda", None) or "0").split(".")[0] >= "13":

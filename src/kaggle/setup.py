@@ -107,6 +107,18 @@ def prepare_appearance(project=paths.PROJECT):
     import zipfile
     third, done = paths.third_party_root(), {}
     od_tar, od_dir = project / "checkpoints/opendelight.tar", third / "OpenDelight/pretrained"
+    wck = paths.weights_root() / "checkpoints"
+    # Kaggle auto-extracts archives in datasets: the .tar/.zip arrive as directories.
+    for arch, inner, dest in ((wck / "opendelight.tar", "opendelight", od_dir / "opendelight"),
+                              (wck / "TRUST_models_BalanceAlb_version.zip", "TRUST_models_BalanceAlb_version",
+                               third / "TRUST/data/TRUST_models_BalanceAlb_version")):
+        found = next((d for d in (arch / inner, arch) if (d / ("base_delight_network.pth" if inner == "opendelight"
+                      else "E_albedo_BalanceAlb.tar")).is_file()), None) if arch.is_dir() else None
+        if found and dest.parent.parent.is_dir():
+            link(found, dest)
+    for name in ("BalanceAlb_model.npz",):
+        if (wck / name).is_file() and not (project / "checkpoints" / name).exists():
+            link(wck / name, project / "checkpoints" / name)
     if od_tar.is_file() and (third / "OpenDelight").is_dir() and not (od_dir / "opendelight/base_delight_network.pth").is_file():
         od_dir.mkdir(parents=True, exist_ok=True)
         with tarfile.open(od_tar) as archive:
@@ -152,8 +164,12 @@ def install_chumpy():
     if subprocess.run([sys.executable, "-c", "import importlib.util as u; exit(u.find_spec('chumpy') is None)"]).returncode == 0:
         return "already installed"
     with tempfile.TemporaryDirectory() as tmp:
-        run([sys.executable, "-m", "pip", "download", "-q", "--no-deps", "--no-binary", ":all:", "chumpy==0.70", "-d", tmp])
-        archive = next(Path(tmp).glob("chumpy-*.tar.gz"))
+        # pip download builds metadata and hits the same setup.py failure, so fetch the sdist directly.
+        import urllib.request
+        meta = json.load(urllib.request.urlopen("https://pypi.org/pypi/chumpy/0.70/json"))
+        url = next(u["url"] for u in meta["urls"] if u["packagetype"] == "sdist")
+        archive = Path(tmp) / url.rsplit("/", 1)[-1]
+        urllib.request.urlretrieve(url, archive)
         with tarfile.open(archive) as tar:
             tar.extractall(tmp, filter="data")
         package = next(Path(tmp).glob("chumpy-*/chumpy"))
@@ -218,7 +234,8 @@ def main(argv=None):
         report["pip_failed"] = pip_install(["trimesh", "scipy", "scikit-image", "opencv-python-headless", "timm", "roma", "PyYAML",
                      "onnxruntime-gpu", "insightface", "lpips", "loguru", "environs", "mediapy",
                      "tyro", "distinctipy", "pytorch_lightning", "einops", "wandb", "pyvista", "dreifus",
-                     "matplotlib", "pandas", "nbformat", "ninja"])
+                     "matplotlib", "pandas", "nbformat", "ninja",
+                     "yacs", "iopath", "fvcore", "kornia", "face_alignment"])
         try:
             report["chumpy"] = install_chumpy()
         except (subprocess.CalledProcessError, StopIteration, OSError) as exc:

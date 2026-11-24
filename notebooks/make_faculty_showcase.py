@@ -22,7 +22,7 @@ from src import showcase as sc
 
 # Later sources override earlier ones (add Kaggle B's out_A.zip when it is downloaded).
 MESH_SOURCES = [ROOT / 'kaggle_outputs/out_A.zip']
-APPEARANCE = [ROOT / 'kaggle_outputs/app_dt', ROOT / 'kaggle_outputs/app_od2']
+APPEARANCE = [ROOT / 'kaggle_outputs/app_dt', ROOT / 'kaggle_outputs/app_od2', ROOT / 'kaggle_outputs/app_trust']
 rows = sc.load_mesh_results(*[p for p in MESH_SOURCES if p.exists()])
 pairs, app_images = sc.load_appearance(*[p for p in APPEARANCE if p.exists()])
 print(len(rows), 'scored meshes;', len(pairs), 'appearance pairs')"""),

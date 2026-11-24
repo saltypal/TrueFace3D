@@ -123,7 +123,12 @@ def prepare_appearance(project=paths.PROJECT):
         od_dir.mkdir(parents=True, exist_ok=True)
         with tarfile.open(od_tar) as archive:
             archive.extractall(od_dir, filter="data")
-    done["opendelight"] = (od_dir / "opendelight/base_delight_network.pth").is_file()
+    mae = third / "OpenDelight/pretrained/mae/mae_visualize_vit_base.pth"  # public MAE ViT-B (Meta), not in our dataset
+    if (third / "OpenDelight").is_dir() and not mae.is_file():
+        import urllib.request
+        mae.parent.mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve("https://dl.fbaipublicfiles.com/mae/visualize/mae_visualize_vit_base.pth", mae)
+    done["opendelight"] = (od_dir / "opendelight/base_delight_network.pth").is_file() and mae.is_file()
     trust = third / "TRUST"
     zip_path = project / "checkpoints/TRUST_models_BalanceAlb_version.zip"
     if zip_path.is_file() and trust.is_dir() and not (trust / "data/TRUST_models_BalanceAlb_version").is_dir():
@@ -164,11 +169,11 @@ def install_chumpy():
     The package is pure Python, so copy it into site-packages from the sdist. The numpy/inspect
     shims it needs at import time are applied by RealDenseFace's common/fix_chumpy.py and our workers.
     """
-    import site
+    import sysconfig
     import tarfile
     import tempfile
     if subprocess.run([sys.executable, "-c", "import importlib.util as u; exit(u.find_spec('chumpy') is None)"]).returncode == 0:
-        return patch_chumpy(Path(site.getsitepackages()[0]) / "chumpy")
+        return patch_chumpy(Path(sysconfig.get_paths()["purelib"]) / "chumpy")
     with tempfile.TemporaryDirectory() as tmp:
         # pip download builds metadata and hits the same setup.py failure, so fetch the sdist directly.
         import urllib.request
@@ -179,7 +184,7 @@ def install_chumpy():
         with tarfile.open(archive) as tar:
             tar.extractall(tmp, filter="data")
         package = next(Path(tmp).glob("chumpy-*/chumpy"))
-        target = Path(site.getsitepackages()[0]) / "chumpy"
+        target = Path(sysconfig.get_paths()["purelib"]) / "chumpy"
         if target.exists():
             shutil.rmtree(target)
         shutil.copytree(package, target)

@@ -26,10 +26,17 @@ def chunk(items, parts):
     return [items[i::parts] for i in range(parts) if items[i::parts]]
 
 
-def matrix_jobs(out, sets, models=MODELS, chunks_clean=4, chunks_real=4):
+def matrix_jobs(out, sets, models=MODELS, chunks_clean=10, chunks_real=4, include_real=False):
+    """Clean set: 20 people x 5 conditions x 5 models = 500 fits (~4-5 h on 2xT4).
+
+    The 244-image real-world set adds ~1220 fits and overruns Kaggle's 12 h limit, so it is opt-in.
+    Smaller clean chunks give more frequent progress lines.
+    """
     jobs = []
-    for set_name, parts, variants in (("clean", chunks_clean, [v.name for v in KAGGLE_VARIANTS]),
-                                      ("real", chunks_real, ["original"])):
+    groups = [("clean", chunks_clean, [v.name for v in KAGGLE_VARIANTS])]
+    if include_real:
+        groups.append(("real", chunks_real, ["original"]))
+    for set_name, parts, variants in groups:
         keys = [c.image_key for c in sets[set_name]]
         for model in models:
             for index, part in enumerate(chunk(keys, parts)):

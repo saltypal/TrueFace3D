@@ -1,7 +1,7 @@
 """Mesh benchmark jobs for notebook 11 (account A). Reuses benchmark.run_matrix.
 
 Job kinds (dicts, JSON-serialisable so src.kaggle.runner can ship them to GPU workers):
-  {"kind": "matrix", "set": "clean"|"real", "model": id, "keys": [...], "variants": [...], "out": dir}
+  {"kind": "matrix", "set": "clean", "model": id, "keys": [...], "variants": [...], "out": dir}
   {"kind": "oracle", "key": image_key, "mode": coord|depth|both, "out": dir, "clean_priors": path}
 """
 import os
@@ -9,7 +9,7 @@ from pathlib import Path
 
 from ..benchmark import (COMPOUND, FACE_16, KAGGLE_VARIANTS, ORIGINAL, Variant, _active_artifact, _fit,
                          model_specs, read_records, run_matrix)
-from ..data_now import installed_cases, pilot_cases, real_world_cases
+from ..data_now import installed_cases, pilot_cases
 from . import paths
 
 VARIANTS = {v.name: v for v in KAGGLE_VARIANTS}
@@ -19,29 +19,22 @@ ORACLE_MODES = ("coord", "depth", "both")
 
 def case_sets(data_root=None, count=20):
     cases = installed_cases(data_root or paths.data_root())
-    return {"clean": pilot_cases(cases, count=count), "real": real_world_cases(cases)}
+    return {"clean": pilot_cases(cases, count=count)}
 
 
 def chunk(items, parts):
     return [items[i::parts] for i in range(parts) if items[i::parts]]
 
 
-def matrix_jobs(out, sets, models=MODELS, chunks_clean=10, chunks_real=4, include_real=False):
-    """Clean set: 20 people x 5 conditions x 5 models = 500 fits (~4-5 h on 2xT4).
-
-    The 244-image real-world set adds ~1220 fits and overruns Kaggle's 12 h limit, so it is opt-in.
-    Smaller clean chunks give more frequent progress lines.
-    """
+def matrix_jobs(out, sets, models=MODELS, chunks=10):
+    """20 NoW people x 5 conditions x 5 models = 500 fits; small chunks give frequent progress lines."""
     jobs = []
-    groups = [("clean", chunks_clean, [v.name for v in KAGGLE_VARIANTS])]
-    if include_real:
-        groups.append(("real", chunks_real, ["original"]))
-    for set_name, parts, variants in groups:
-        keys = [c.image_key for c in sets[set_name]]
-        for model in models:
-            for index, part in enumerate(chunk(keys, parts)):
-                jobs.append({"kind": "matrix", "set": set_name, "model": model, "keys": part,
-                             "variants": variants, "out": str(Path(out) / "runs" / f"{set_name}-{model}-c{index}")})
+    keys = [c.image_key for c in sets["clean"]]
+    variants = [v.name for v in KAGGLE_VARIANTS]
+    for model in models:
+        for index, part in enumerate(chunk(keys, chunks)):
+            jobs.append({"kind": "matrix", "set": "clean", "model": model, "keys": part,
+                         "variants": variants, "out": str(Path(out) / "runs" / f"clean-{model}-c{index}")})
     return jobs
 
 

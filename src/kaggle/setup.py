@@ -109,13 +109,13 @@ def prepare_appearance(project=paths.PROJECT):
     od_tar, od_dir = project / "checkpoints/opendelight.tar", third / "OpenDelight/pretrained"
     wck = paths.weights_root() / "checkpoints"
     # Kaggle auto-extracts archives in datasets: the .tar/.zip arrive as directories.
-    for arch, inner, dest in ((wck / "opendelight.tar", "opendelight", od_dir / "opendelight"),
-                              (wck / "TRUST_models_BalanceAlb_version.zip", "TRUST_models_BalanceAlb_version",
-                               third / "TRUST/data/TRUST_models_BalanceAlb_version")):
-        found = next((d for d in (arch / inner, arch) if (d / ("base_delight_network.pth" if inner == "opendelight"
-                      else "E_albedo_BalanceAlb.tar")).is_file()), None) if arch.is_dir() else None
-        if found and dest.parent.parent.is_dir():
-            link(found, dest)
+    # Kaggle auto-extracts dataset archives, so find the weight files wherever they landed.
+    for marker, dest in (("base_delight_network.pth", od_dir / "opendelight"),
+                         ("E_albedo_BalanceAlb.tar", third / "TRUST/data/TRUST_models_BalanceAlb_version")):
+        hit = next(iter(sorted(wck.rglob(marker))), None) if wck.is_dir() else None
+        done[f"found_{marker}"] = str(hit) if hit else None
+        if hit and dest.parent.parent.is_dir() and not (dest / marker).is_file():
+            link(hit.parent, dest)
     for name in ("BalanceAlb_model.npz",):
         if (wck / name).is_file() and not (project / "checkpoints" / name).exists():
             link(wck / name, project / "checkpoints" / name)

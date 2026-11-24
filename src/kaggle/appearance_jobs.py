@@ -23,6 +23,13 @@ def attempt_dir(job):
 
 
 def run_job(job):
+    import inspect
+    import numpy as np
+    if not hasattr(inspect, "getargspec"):  # chumpy (via DECA FLAME) needs these on Python 3.11+/numpy 2
+        inspect.getargspec = inspect.getfullargspec
+    for name, value in (("bool", bool), ("int", int), ("float", float), ("complex", complex), ("object", object), ("unicode", str), ("str", str)):
+        if name not in np.__dict__:
+            setattr(np, name, value)
     """Run one backend on one input; skip if a result.json already exists (resumable)."""
     folder = attempt_dir(job)
     done = folder / "result.json"

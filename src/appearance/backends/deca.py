@@ -30,6 +30,7 @@ def _run(image_path, out_dir, **_):
     from decalib.deca import DECA
     from decalib.utils.config import cfg as deca_cfg
     deca_cfg.model.use_tex = True
+    deca_cfg.model.extract_tex = True  # set by DECA's demo argparse, absent from the default config
     deca_cfg.rasterizer_type = "pytorch3d"
     deca = DECA(config=deca_cfg, device="cuda")
     data = datasets.TestData(str(image_path), iscrop=True, face_detector="fan")[0]

@@ -138,13 +138,19 @@ def prepare_appearance(project=paths.PROJECT):
                         ("generic_model.pkl", "deca_model.tar", "BalanceAlb_model.npz",
                          "TRUST_models_BalanceAlb_version/E_albedo_BalanceAlb.tar"))
     # OpenDelight's face detector/aligner (ibug) keep weights in git-lfs, so clone with lfs then install editable.
+    if shutil.which("git-lfs") is None:
+        if run(["apt-get", "install", "-y", "-qq", "git-lfs"], check=False).returncode:
+            run(["apt-get", "update", "-qq"], check=False)
+            run(["apt-get", "install", "-y", "-qq", "git-lfs"], check=False)
     for name in ("face_detection", "face_alignment"):
         dest = third / f"ibug_{name}"
         try:
             if not dest.is_dir():
                 run(["git", "lfs", "install"], check=False)
                 run(["git", "clone", "--depth", "1", f"https://github.com/hhj1897/{name}.git", dest])
-                run(["git", "-C", dest, "lfs", "pull"], check=False)
+            run(["git", "-C", dest, "lfs", "pull"], check=False)
+            pointers = [p for p in dest.rglob("*.pth") if p.stat().st_size < 1024]
+            done[f"ibug_{name}_lfs_pointers_left"] = len(pointers)
             run([sys.executable, "-m", "pip", "install", "-q", "-e", dest], check=False)
             done[f"ibug_{name}"] = True
         except subprocess.CalledProcessError as exc:
@@ -162,7 +168,7 @@ def install_chumpy():
     import tarfile
     import tempfile
     if subprocess.run([sys.executable, "-c", "import importlib.util as u; exit(u.find_spec('chumpy') is None)"]).returncode == 0:
-        return "already installed"
+        return patch_chumpy(Path(site.getsitepackages()[0]) / "chumpy")
     with tempfile.TemporaryDirectory() as tmp:
         # pip download builds metadata and hits the same setup.py failure, so fetch the sdist directly.
         import urllib.request
@@ -177,7 +183,22 @@ def install_chumpy():
         if target.exists():
             shutil.rmtree(target)
         shutil.copytree(package, target)
-    return f"copied to {target}"
+    return f"copied to {target}; " + patch_chumpy(target)
+
+
+def patch_chumpy(target):
+    """Make chumpy import on Python 3.11+/numpy 2 in every process (upstream CLIs don't get our runtime shims)."""
+    import re
+    init, ch = Path(target) / "__init__.py", Path(target) / "ch.py"
+    if not init.is_file():
+        return "chumpy not found to patch"
+    text = init.read_text(encoding="utf-8")
+    text = re.sub(r"^from numpy import .*bool.*$", "from numpy import nan, inf", text, flags=re.M)
+    init.write_text(text, encoding="utf-8")
+    if ch.is_file():
+        ch.write_text(ch.read_text(encoding="utf-8").replace("inspect.getargspec(", "inspect.getfullargspec("),
+                      encoding="utf-8")
+    return "patched"
 
 
 def pip_install(requirements):

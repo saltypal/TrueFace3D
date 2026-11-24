@@ -123,12 +123,19 @@ def prepare_appearance(project=paths.PROJECT):
         od_dir.mkdir(parents=True, exist_ok=True)
         with tarfile.open(od_tar) as archive:
             archive.extractall(od_dir, filter="data")
-    mae = third / "OpenDelight/pretrained/mae/mae_visualize_vit_base.pth"  # public MAE ViT-B (Meta), not in our dataset
+    mae = third / "OpenDelight/pretrained/mae/mae_visualize_vit_base.pth"  # doc/ENV.md: MAE pretrain ViT-B saved under this name
     if (third / "OpenDelight").is_dir() and not mae.is_file():
         import urllib.request
         mae.parent.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve("https://dl.fbaipublicfiles.com/mae/visualize/mae_visualize_vit_base.pth", mae)
-    done["opendelight"] = (od_dir / "opendelight/base_delight_network.pth").is_file() and mae.is_file()
+        urllib.request.urlretrieve("https://dl.fbaipublicfiles.com/mae/pretrain/mae_pretrain_vit_base.pth", mae)
+    # doc/ENV.md: DAViD soft foreground segmentation (Microsoft) for OpenDelight's matting step
+    seg = third / "OpenDelight/matting/model/foreground-segmentation-model-vitl16_384.onnx"
+    if (third / "OpenDelight").is_dir() and not seg.is_file():
+        import urllib.request
+        seg.parent.mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve("https://facesyntheticspubwedata.z6.web.core.windows.net/iccv-2025/models/"
+                                   "foreground-segmentation-model-vitl16_384.onnx", seg)
+    done["opendelight"] = all(p.is_file() for p in (od_dir / "opendelight/base_delight_network.pth", mae, seg))
     trust = third / "TRUST"
     zip_path = project / "checkpoints/TRUST_models_BalanceAlb_version.zip"
     if zip_path.is_file() and trust.is_dir() and not (trust / "data/TRUST_models_BalanceAlb_version").is_dir():

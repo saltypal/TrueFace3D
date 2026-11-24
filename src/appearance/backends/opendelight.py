@@ -31,6 +31,12 @@ def _run(image_path, out_dir, **_):
     inputs.mkdir(parents=True, exist_ok=True)
     name = "input.png"
     Image.open(image_path).convert("RGB").save(inputs / name)
+    # test.py shells out to a bare `python` with bash line continuations for matting, which fails on Windows
+    # (and may pick the wrong interpreter). Run the same matting step first with our interpreter.
+    mat_root = work / "opendelight/mat"
+    mat_root.mkdir(parents=True, exist_ok=True)
+    run_cli([PYTHON, "run_matting.py", "--input_root", inputs, "--output_root", mat_root],
+            third_party(REPO) / "matting", out_dir / "matting.log")
     run_cli([PYTHON, "test.py", "--data_root", inputs, "--save_root", work, "--device", "0"],
             third_party(REPO), out_dir / "upstream.log")
     rgba = np.asarray(Image.open(work / "opendelight/delight" / name).convert("RGBA"))

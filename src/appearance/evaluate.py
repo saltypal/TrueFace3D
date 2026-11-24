@@ -43,7 +43,7 @@ def score_clean(folder, photo_path):
     if reference.is_file():  # methods that render in their own crop frame
         photo_path = reference
     with Image.open(photo_path) as p:
-        photo = _fit_size(np.asarray(p.convert("RGB")), (w, h), Image.Resampling.AREA)
+        photo = _fit_size(np.asarray(p.convert("RGB")), (w, h), Image.Resampling.BOX)  # PIL has no AREA; BOX is area averaging
     out = metrics.photo_metrics(photo, a["render"], a["mask"])
     if a["vis"] is not None:
         out["uv_coverage"] = metrics.uv_coverage(a["vis"])

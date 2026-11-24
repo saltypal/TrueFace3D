@@ -50,7 +50,10 @@ def run_job(job):
     result = backends.load(job["method"]).run(image, folder, box=meta.get("face_box"))
     result.update(job=job, input=str(image), input_metadata=meta)
     if result["status"] == "ok" and job["variant"] == "original":
-        result["metrics_vs_photo"] = evaluate.score_clean(folder, case.image_path)
+        try:  # a scoring bug must not discard a successful reconstruction
+            result["metrics_vs_photo"] = evaluate.score_clean(folder, case.image_path)
+        except Exception as exc:  # noqa: BLE001
+            result["metrics_error"] = f"{type(exc).__name__}: {exc}"
     folder.mkdir(parents=True, exist_ok=True)
     evaluate.write(done, result)
     return result
@@ -92,7 +95,10 @@ def raw_projection_from_vits(tagged_records, out):
         result = method.run(image, folder, fit_dir=face.parent)
         result.update(job=job, input=str(image), input_metadata=meta)
         if result["status"] == "ok" and rec.variant_id == "original":
-            result["metrics_vs_photo"] = evaluate.score_clean(folder, case.image_path)
+            try:  # a scoring bug must not discard a successful reconstruction
+                result["metrics_vs_photo"] = evaluate.score_clean(folder, case.image_path)
+            except Exception as exc:  # noqa: BLE001
+                result["metrics_error"] = f"{type(exc).__name__}: {exc}"
         evaluate.write(folder / "result.json", result)
         results.append(result)
     return results

@@ -205,7 +205,7 @@ def patch_chumpy(target):
     if not init.is_file():
         return "chumpy not found to patch"
     text = init.read_text(encoding="utf-8")
-    text = re.sub(r"^from numpy import .*bool.*$", "from numpy import nan, inf", text, flags=re.M)
+    text = re.sub(r"^(\s*)from numpy import .*bool.*$", r"from numpy import nan, inf", text, flags=re.M)  # line is indented
     init.write_text(text, encoding="utf-8")
     if ch.is_file():
         ch.write_text(ch.read_text(encoding="utf-8").replace("inspect.getargspec(", "inspect.getfullargspec("),

@@ -34,14 +34,31 @@ def oracle_settings(argv):
     return values["priors_in"], values["mode"]
 
 
+def map_coords(coord, src_bbox, dst_bbox):
+    """Move per-vertex image coordinates from one face box to another (both x0, y0, x1, y1 in their own image).
+
+    ``vertex_coord`` is stored in input-image pixels, so priors from the original photo must be mapped into the
+    degraded photo's frame before substitution. Log-variances are resolution-independent and are not changed.
+    """
+    s, d = np.asarray(src_bbox, float), np.asarray(dst_bbox, float)
+    scale = (d[2:] - d[:2]) / np.maximum(s[2:] - s[:2], 1e-6)
+    return (np.asarray(coord, float) - s[:2]) * scale + d[:2]
+
+
 def substitute_priors(result, clean, mode):
     """Replace the selected prior fields on ``result`` with arrays from ``clean``.
 
+    Coordinates are mapped from ``clean['face_bbox']`` to the result's face box when both are known.
     Keeps each field's container type and dtype (numpy or torch). Returns the names replaced.
     """
     names = MODES[mode]
+    dst_box = getattr(result, "face_bbox", None)
     for name in names:
         old, new = getattr(result, name), np.asarray(clean[name])
+        if name == "vertex_coord" and "face_bbox" in clean and dst_box is not None:
+            box = dst_box.detach().cpu().numpy() if hasattr(dst_box, "detach") else np.asarray(dst_box)
+            new = map_coords(new.reshape(-1, 2), np.asarray(clean["face_bbox"]).reshape(-1)[:4],
+                             box.reshape(-1)[:4]).reshape(new.shape)
         if tuple(old.shape) != new.shape:
             raise ValueError(f"Clean prior {name} has shape {new.shape}, expected {tuple(old.shape)}")
         if hasattr(old, "detach"):

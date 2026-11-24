@@ -24,6 +24,16 @@ def attempt_dir(job):
 
 def run_job(job):
     import inspect
+    import os
+    # Official OpenDelight/TRUST checkpoints from our private dataset pickle non-tensor objects; torch>=2.6
+    # defaults torch.load to weights_only=True. Inherited by the upstream CLI subprocesses.
+    os.environ.setdefault("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
+    try:  # face_alignment >= 1.4 renamed LandmarksType._2D to TWO_D; DECA still uses the old name.
+        import face_alignment
+        if not hasattr(face_alignment.LandmarksType, "_2D"):
+            type.__setattr__(face_alignment.LandmarksType, "_2D", face_alignment.LandmarksType.TWO_D)
+    except ImportError:
+        pass
     import numpy as np
     if not hasattr(inspect, "getargspec"):  # chumpy (via DECA FLAME) needs these on Python 3.11+/numpy 2
         inspect.getargspec = inspect.getfullargspec

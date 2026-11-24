@@ -235,7 +235,7 @@ def main(argv=None):
                      "onnxruntime-gpu", "insightface", "lpips", "loguru", "environs", "mediapy",
                      "tyro", "distinctipy", "pytorch_lightning", "einops", "wandb", "pyvista", "dreifus",
                      "matplotlib", "pandas", "nbformat", "ninja",
-                     "yacs", "iopath", "fvcore", "kornia", "face_alignment"])
+                     "yacs", "iopath", "fvcore", "kornia", "face_alignment", "pyshtools"])
         try:
             report["chumpy"] = install_chumpy()
         except (subprocess.CalledProcessError, StopIteration, OSError) as exc:

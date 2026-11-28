@@ -47,3 +47,8 @@ Journal.md
 KAGGLE_RUNS.md
 # Local run logs
 experiments/**/*.log
+
+# Linux venv and executed FaceScape-C notebooks (they show licensed photos)
+.venv-linux/
+notebooks/30_dataset_inspection.ipynb
+notebooks/*.executed.ipynb

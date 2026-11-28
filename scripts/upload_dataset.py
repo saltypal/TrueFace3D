@@ -16,6 +16,7 @@ import subprocess
 from pathlib import Path
 
 DATASET_ID = "satyapaladugu/face1-data"
+OWNER = {"a": "satyapaladugu", "b": "satyapaladuguplus"}
 
 README = """# FaceScape-C (private; FaceScape license applies)
 
@@ -36,16 +37,17 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", type=Path, required=True)
     ap.add_argument("--version", help="version notes; omit for the first upload")
+    ap.add_argument("--account", choices=("a", "b"), default="a", help="each account keeps its own private copy")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
     if not (a.root / "manifest_clean.csv").exists():
         raise SystemExit(f"{a.root} is not a built FaceScape-C folder")
     (a.root / "README.md").write_text(README)
-    meta = {"title": "Face1 Data", "id": DATASET_ID, "licenses": [{"name": "other"}],
+    meta = {"title": "Face1 Data", "id": DATASET_ID.replace("satyapaladugu/", OWNER[a.account] + "/"), "licenses": [{"name": "other"}],
             "subtitle": "Private: FaceScape photos + TU ground truth + degradations"}
     (a.root / "dataset-metadata.json").write_text(json.dumps(meta, indent=1))
     size = sum(p.stat().st_size for p in a.root.rglob("*") if p.is_file()) / 1e9
-    cmd = ["kaggle-a", "datasets"]
+    cmd = [f"kaggle-{a.account}", "datasets"]
     cmd += (["version", "-m", a.version] if a.version else ["create"]) + ["-p", str(a.root), "-r", "zip"]
     print(f"{size:.2f} GB in {a.root}\n{' '.join(cmd)}")
     if a.dry_run:

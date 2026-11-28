@@ -50,8 +50,9 @@ OUT = Path("{out}"); OUT.mkdir(parents=True, exist_ok=True)
 print("[setup] outputs ->", OUT, flush=True)'''
 
 
-def zip_cell(out: str, exclude: tuple[str, ...] = ("*.pth", "*.ckpt", "*.whl", "__pycache__")) -> str:
-    return f'''# Last cell: one zip of the results only (lessons 18-20).
+def zip_cell(out: str, exclude: tuple[str, ...] = ("*.pth", "*.ckpt", "*.whl", "__pycache__"), move: bool = False) -> str:
+    """move=True deletes each file once it is in the zip (keeps big runs under the 20 GB output limit)."""
+    return f'''# Last cell: one zip of the results only (lessons 18-20).{" Files are moved into the zip to stay under 20 GB." if move else ""}
 import fnmatch, zipfile
 OUT = Path("{out}"); ZIP = OUT.with_suffix(".zip")
 EXCLUDE = {list(exclude)!r}
@@ -59,7 +60,8 @@ n = 0
 with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_DEFLATED) as zf:
     for p in sorted(OUT.rglob("*")):
         if p.is_file() and not any(fnmatch.fnmatch(part, pat) for part in p.parts for pat in EXCLUDE):
-            zf.write(p, p.relative_to(OUT.parent)); n += 1
+            zf.write(p, p.relative_to(OUT.parent), compress_type=zipfile.ZIP_STORED if p.suffix in (".npz", ".png", ".glb") else zipfile.ZIP_DEFLATED); n += 1
+            {"p.unlink()" if move else "pass"}
 print(f"[zip] {{n}} files -> {{ZIP}} ({{ZIP.stat().st_size / 1e6:.1f}} MB); total time {{(time.time() - T0) / 60:.1f}} min", flush=True)'''
 
 

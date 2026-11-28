@@ -31,7 +31,10 @@ def main(argv=None):
     ap.add_argument("--no-gpu", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args(argv)
-    datasets = [DATASET, WHEELS] + (a.dataset or [])
+    # each account reads its own private copy of the FaceScape-C data; B cannot see A's wheels dataset
+    own = DATASET.replace("satyapaladugu/", USERS[a.account] + "/")
+    datasets = [own] + ([WHEELS, "satyapaladugu/trueface3d-private"] if a.account == "a" else ["satyapaladugu/trueface3d-private"])
+    datasets += [d for d in (a.dataset or []) if d not in datasets]
     meta = kernel_metadata(USERS[a.account], a.slug, a.notebook.name, datasets, gpu=not a.no_gpu)
     folder = write_kernel_folder(ROOT / "kaggle_staging" / a.slug, a.notebook, meta)
     print("staged", folder)

@@ -22,13 +22,14 @@ NEEDS = {"vits": ("nvdiffrast.torch", "flame_solver"), "vitb": ("nvdiffrast.torc
 NAMES = {"vits": "RealDenseFace ViT-S", "vitb": "RealDenseFace ViT-B", "deca": "DECA", "mica": "MICA"}
 
 
-def cells(model: str):
-    out = f"/kaggle/working/k10_{model}"
+def cells(model: str, expressions=(1, 2, 3, 19), tag=""):
+    out = f"/kaggle/working/k10_{model}{tag}"
+    n = 3 * 3 * 43 * len(expressions)
     return [
         md(f"""# K10 - FaceScape-C mesh benchmark: {NAMES[model]}
 
-Real FaceScape photos (no renders). Test subjects x expressions 1, 2, 3, 19 x views front / left45 / right45
-x 43 conditions (clean + C01-C10 and R1-R4 at 3 severities) = **1,548 images**.
+Real FaceScape photos (no renders). Test subjects 344, 350, 352 x expressions {list(expressions)} x views front / left45 / right45
+x 43 conditions (clean + C01-C10 and R1-R4 at 3 severities) = **{n:,} images**.
 
 Saved for every image: the full fit bundle (meshes, priors when the model has them, renders, logs),
 `record.json` (status, timing, GPU), and `quality.csv` (PSNR, SSIM, sharpness, noise, brightness of each input).
@@ -41,7 +42,8 @@ ENV = readiness.environment()
 print(ENV["nvidia_smi"]); print(json.dumps(ENV["torch"], indent=1))
 (OUT / "environment.json").write_text(json.dumps(ENV, indent=1, default=str))
 assert ENV["torch"].get("available"), "no CUDA device"
-MODEL = "{model}"'''),
+MODEL = "{model}"
+EXPRESSIONS = {list(expressions)!r}'''),
         md("## 2. Upstream code, weights and CUDA extensions"),
         code(f'''from src.kaggle import setup
 t = time.time(); REPORT = setup.main(["--skip-appearance"])
@@ -64,7 +66,7 @@ for m in {NEEDS[model]!r}:
 from src.facescape.dataset import FaceScapeC
 from src.kaggle import facescape_jobs as fj
 DS = FaceScapeC.find(); print("[data]", DS.root, flush=True)
-ROWS = fj.benchmark_cases(DS)
+ROWS = fj.benchmark_cases(DS, expressions=EXPRESSIONS)
 scope = pd.DataFrame(ROWS)
 print(f"[data] {len(ROWS)} images; subjects {sorted(scope.subject.unique())}; "
       f"expressions {sorted(scope.expression.unique())}; views {sorted(scope.view.unique())}; "
@@ -128,13 +130,17 @@ for j, cond in enumerate(pick):
     ax[0, j].set_title(cond); [a.axis("off") for a in ax[:, j]]
 plt.tight_layout(); plt.savefig(OUT / "preview_344.png", dpi=90); plt.show()'''),
         md("## 9. Zip every output (fit bundles, records, quality, logs)"),
-        code(zip_cell(out, exclude=("*.whl", "__pycache__"))),
+        code(zip_cell(out, exclude=("*.whl", "__pycache__"), move=model.startswith("vit"))),
     ]
 
 
 def main():
     written = []
-    for model in NEEDS:
+    # RealDenseFace keeps ~12 MB per fit (9 MB priors), so it is split in two halves of 774 images (~9 GB each).
+    for model in ("vits", "vitb"):
+        for exprs, tag in (((1, 2), "_e1-2"), ((3, 19), "_e3-19")):
+            written.append(save(REPO / "notebooks" / "kaggle" / f"K10_{model}{tag}.ipynb", cells(model, exprs, tag)))
+    for model in ("deca", "mica"):
         written.append(save(REPO / "notebooks" / "kaggle" / f"K10_{model}.ipynb", cells(model)))
     for p in written:
         print(p)

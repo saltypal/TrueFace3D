@@ -16,7 +16,7 @@ from pathlib import Path
 from ..facescape import constants as C
 from ..facescape.dataset import FaceScapeC
 
-MODELS_ON_KAGGLE = ("vits", "vitb", "deca", "mica")   # EMOCA v2, SMIRK, HRN: adapters pending
+MODELS_ON_KAGGLE = ("vits", "vitb", "deca", "emoca", "mica")   # SMIRK, HRN: adapters pending
 
 
 def benchmark_cases(ds: FaceScapeC, subjects=None, expressions=None, views=None, conditions=None):

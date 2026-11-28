@@ -14,7 +14,7 @@ import traceback
 
 import numpy as np
 
-from .baselines import DECA, MICA, SCRFD, SPECS, _model_metadata, requested_device
+from .baselines import DECA, EMOCA_CKPT, MICA, SCRFD, SPECS, _model_metadata, requested_device
 
 
 NOW_INDICES = (36, 39, 42, 45, 33, 48, 54)
@@ -81,6 +81,24 @@ def read_bgr(path):
 
 
 def detect_face(bgr, input_size):
+    """SCRFD on the photo; if no face is found, retry with a black border (tight face crops make the face
+    too large for SCRFD at 640 px, e.g. FaceScape-C 768 px crops) and shift the result back."""
+    import cv2
+    try:
+        return _detect_face(bgr, input_size)
+    except ValueError as first:
+        for fraction in (0.25, 0.5, 1.0):
+            pad = int(round(fraction * max(bgr.shape[:2])))
+            padded = cv2.copyMakeBorder(bgr, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=(0, 0, 0))
+            try:
+                box, keypoints, score = _detect_face(padded, input_size)
+            except ValueError:
+                continue
+            return box - pad, keypoints - pad, score
+        raise first
+
+
+def _detect_face(bgr, input_size):
     """Decode the staged antelopev2 SCRFD boxes and five keypoints on CPU."""
     import cv2
     import onnxruntime as ort
@@ -208,14 +226,15 @@ def timed_forward(device, metadata):
                         memory_scope="torch_inference_with_resident_weights")
 
 
-def fit_deca(image_path, run_dir, metadata):
+def fit_deca(image_path, run_dir, metadata, variant="deca"):
+    """DECA, or EMOCA v2 (variant="emoca"): EMOCA's E_flame plus its expression encoder replaces exp."""
     import cv2
     import torch
     from skimage.transform import estimate_transform, warp
     from types import SimpleNamespace
 
     native = run_dir / "native"
-    device = torch.device(requested_device("deca"))
+    device = torch.device(requested_device(variant))
     with stage("preprocess"):
         bgr = read_bgr(image_path)
         box, keypoints, confidence = detect_face(bgr, 640)
@@ -247,13 +266,27 @@ def fit_deca(image_path, run_dir, metadata):
                                  flame_lmk_embedding_path=embedding)
         widths = {"shape": 100, "tex": 50, "exp": 50, "pose": 6, "cam": 3, "light": 27}
         encoder = ResnetEncoder(sum(widths.values())).eval()
-        checkpoint = torch.load(DECA / "data/deca_model.tar", map_location="cpu", weights_only=True)
-        encoder.load_state_dict(checkpoint["E_flame"], strict=True)
-        del checkpoint
+        expression_encoder = None
+        if variant == "emoca":
+            from ..models.safe_ckpt import load_state_dict
+            state = load_state_dict(EMOCA_CKPT)
+            part = lambda prefix: {k[len(prefix):]: v for k, v in state.items() if k.startswith(prefix)}  # noqa: E731
+            encoder.load_state_dict(part("deca.E_flame."), strict=True)
+            expression_encoder = ResnetEncoder(50).eval()
+            expression_encoder.load_state_dict(part("deca.E_expression."), strict=True)
+            expression_encoder.to(device)
+            del state
+            metadata.update(emoca_checkpoint=str(EMOCA_CKPT.name), emoca_expression_encoder=True)
+        else:
+            checkpoint = torch.load(DECA / "data/deca_model.tar", map_location="cpu", weights_only=True)
+            encoder.load_state_dict(checkpoint["E_flame"], strict=True)
+            del checkpoint
         encoder.to(device)
         flame = FLAME(config).eval().to(device)
     with timed_forward(device, metadata):
         output = dict(zip(widths, encoder(tensor.to(device)).split(tuple(widths.values()), dim=1)))
+        if expression_encoder is not None:
+            output["exp"] = expression_encoder(tensor.to(device))
         shaped = output["shape"]
         expression, pose = output["exp"], output["pose"]
         posed, _, _ = flame(shaped, expression, pose)
@@ -373,7 +406,8 @@ def main():
             from .baseline_pixel3dmm import fit_pixel3dmm
             fit_pixel3dmm(args.image, args.run_dir, result)
         else:
-            function = {"deca": fit_deca, "mica": fit_mica}[args.model_id]
+            function = {"deca": fit_deca, "mica": fit_mica,
+                        "emoca": lambda *a: fit_deca(*a, variant="emoca")}[args.model_id]
             result.update(fit_device=requested_device(args.model_id), detector_device="cpu")
             function(args.image, args.run_dir, result)
         result.update(fit_status="success", seconds=perf_counter() - started)

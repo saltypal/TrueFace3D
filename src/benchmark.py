@@ -131,6 +131,7 @@ ASSETS = {
                                "weights/flame/flame2023.pkl", "weights/flame/flame_assets.npz",
                                "configs/model/vitb.yaml", "configs/fitting/single_image.yaml")),
     "deca": ("DECA", ("data/deca_model.tar", "data/generic_model.pkl", "data/landmark_embedding.npy")),
+    "emoca": ("DECA", ("data/generic_model.pkl", "data/landmark_embedding.npy")),
     "pixel3dmm": ("Pixel3DMM", ("pretrained_weights/uv.ckpt", "pretrained_weights/normals.ckpt",)),
     "mica": ("Pixel3DMM/src/pixel3dmm/preprocessing/MICA",
              ("data/pretrained/mica.tar", "data/FLAME2020/generic_model.pkl",
@@ -153,7 +154,7 @@ def _asset_hashes(model_id):
         except (OSError, subprocess.CalledProcessError):
             pass
     paths = {name: root / name for name in members}
-    if model_id in {"deca", "mica", "pixel3dmm"}:
+    if model_id in {"deca", "emoca", "mica", "pixel3dmm"}:
         from .geometry.baselines import SPECS
         paths.update({str(path.relative_to(PROJECT)): path for path in SPECS[model_id][2]})
     return revision, _digest({name: file_digest(path) if path.is_file() else None for name, path in paths.items()})
@@ -195,7 +196,7 @@ def model_specs(model_ids=MODEL_IDS):
         else:
             argv = ()
             runtime, device, precision = "windows-comparator", "cpu", "fp32"
-            if model_id in {"deca", "mica"}:
+            if model_id in {"deca", "emoca", "mica"}:
                 device = os.getenv("TRUEFACE3D_COMPARATOR_DEVICE", device)
                 runtime += "-" + device
             elif os.getenv("TRUEFACE3D_PIXEL3DMM_WSL_DISTRO"):

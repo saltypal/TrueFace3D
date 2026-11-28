@@ -14,6 +14,8 @@ MICA = PIXEL / "src/pixel3dmm/preprocessing/MICA"
 DECA = ROOT / "third_party" / "DECA"
 SCRFD = ROOT / "checkpoints/insightface/models/antelopev2/scrfd_10g_bnkps.onnx"
 RUNTIME = ROOT / "checkpoints/comparator_runtime"
+# EMOCA v2 (Danecek et al. 2022), EMOCA_v2_lr_mse_20 detail checkpoint; licensed, never in git.
+EMOCA_CKPT = Path(os.environ.get("TRUEFACE3D_EMOCA_CKPT", ROOT / "checkpoints/emoca/EMOCA_v2_lr_mse_20.ckpt"))
 DEADLINE_ENV = "TRUEFACE3D_COMPARATOR_DEADLINE"
 
 SPECS = {
@@ -21,6 +23,12 @@ SPECS = {
         DECA, "a11554ae2a2b0f3998cf1fa94dd4db03babb34a2",
         (DECA / "data/deca_model.tar", DECA / "data/generic_model.pkl",
          DECA / "data/landmark_embedding.npy", SCRFD),
+        ("torch", "torchvision", "cv2", "onnxruntime", "skimage.transform", "chumpy"),
+        "cpu",
+    ),
+    "emoca": (
+        DECA, "a11554ae2a2b0f3998cf1fa94dd4db03babb34a2",
+        (EMOCA_CKPT, DECA / "data/generic_model.pkl", DECA / "data/landmark_embedding.npy", SCRFD),
         ("torch", "torchvision", "cv2", "onnxruntime", "skimage.transform", "chumpy"),
         "cpu",
     ),

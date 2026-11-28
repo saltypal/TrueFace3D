@@ -50,6 +50,46 @@ def _files(folder: Path) -> dict:
     return {str(p.relative_to(folder)): p.stat().st_size for p in sorted(folder.rglob("*")) if p.is_file()}
 
 
+BATCH_MODELS = ("deca", "emoca", "mica")   # one worker process per job: the model loads once
+
+
+def _run_batch_job(job, ds_root, deadline, gpu, log):
+    from ..geometry.baselines import run_baseline_batch
+    todo = []
+    for image_id, cond, rel in job["items"]:
+        folder = Path(job["out"]) / "fits" / job["model"] / cond / image_id
+        if (folder / "record.json").is_file():
+            continue
+        if folder.exists():
+            shutil.rmtree(folder)
+        todo.append((image_id, cond, rel, folder))
+    if not todo:
+        return
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    if time.time() > deadline:
+        results = [{"fit_status": "not_run", "error_stage": "session_deadline"}] * len(todo)
+    else:
+        start = time.time()
+        try:
+            results = run_baseline_batch(job["model"], [(ds_root / rel, folder) for _, _, rel, folder in todo],
+                                         Path(job["out"]) / "logs_batch" / job["model"], timeout=3600)
+        except Exception as exc:  # noqa: BLE001
+            results = [{"fit_status": "failed", "error_stage": "exception",
+                        "message": f"{type(exc).__name__}: {exc}"}] * len(todo)
+        print(f"[batch] {job['model']} {job['variant']}: {len(todo)} fits in {time.time() - start:.0f}s", flush=True)
+    for (image_id, cond, rel, folder), result in zip(todo, results):
+        record = {"model": job["model"], "image_id": image_id, "condition": cond, "input": rel, "gpu": gpu,
+                  "started": stamp, **result}
+        record["wall_seconds"] = round(result.get("seconds") or 0.0, 2)
+        if folder.is_dir():
+            record["files"] = _files(folder)
+            record["has_priors"] = False
+        if record["fit_status"] != "not_run":
+            (folder / "record.json").write_text(json.dumps(record, indent=1, default=str), encoding="utf-8")
+        with log.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({k: v for k, v in record.items() if k != "files"}, default=str) + "\n")
+
+
 def run_job(job):
     """Runs inside a GPU worker. Never raises for a single failed fit; the record says what happened."""
     from ..benchmark import _fit, model_specs
@@ -59,6 +99,8 @@ def run_job(job):
     gpu = os.environ.get("TRUEFACE3D_GPU_INDEX", "0")
     log = Path(job["out"]) / "records" / f"{job['model']}_gpu{gpu}.jsonl"
     log.parent.mkdir(parents=True, exist_ok=True)
+    if job["model"] in BATCH_MODELS and os.environ.get("TRUEFACE3D_BATCH", "1") == "1":
+        return _run_batch_job(job, ds_root, deadline, gpu, log)
     for image_id, cond, rel in job["items"]:
         folder = Path(job["out"]) / "fits" / job["model"] / cond / image_id
         record_path = folder / "record.json"

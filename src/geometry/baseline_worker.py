@@ -18,6 +18,8 @@ from .baselines import DECA, EMOCA_CKPT, MICA, SCRFD, SPECS, _model_metadata, re
 
 
 NOW_INDICES = (36, 39, 42, 45, 33, 48, 54)
+_MODELS = {}      # batch mode: models stay loaded across images of one worker process
+_SESSIONS = {}
 
 
 class StageError(RuntimeError):
@@ -106,8 +108,10 @@ def _detect_face(bgr, input_size):
     options = ort.SessionOptions()
     options.log_severity_level = 3  # Exported anchors advertise 640-static output shapes.
     options.intra_op_num_threads = 4
-    session = ort.InferenceSession(str(SCRFD), sess_options=options,
-                                   providers=["CPUExecutionProvider"])
+    if "scrfd" not in _SESSIONS:
+        _SESSIONS["scrfd"] = ort.InferenceSession(str(SCRFD), sess_options=options,
+                                                  providers=["CPUExecutionProvider"])
+    session = _SESSIONS["scrfd"]
     height, width = bgr.shape[:2]
     resize = input_size / max(height, width)
     new_width, new_height = max(1, int(width * resize)), max(1, int(height * resize))
@@ -257,32 +261,37 @@ def fit_deca(image_path, run_dir, metadata, variant="deca"):
     basis = DECA / "data/generic_model.pkl"
     embedding = DECA / "data/landmark_embedding.npy"
     with stage("checkpoint_load"):
-        sys.path.insert(0, str(DECA))
-        from decalib.models.encoders import ResnetEncoder
-        from decalib.models.FLAME import FLAME
+        _key = (variant, str(device))
+        if _key not in _MODELS:
+            sys.path.insert(0, str(DECA))
+            from decalib.models.encoders import ResnetEncoder
+            from decalib.models.FLAME import FLAME
 
-        load_chumpy()
-        config = SimpleNamespace(n_shape=100, n_exp=50, flame_model_path=basis,
-                                 flame_lmk_embedding_path=embedding)
-        widths = {"shape": 100, "tex": 50, "exp": 50, "pose": 6, "cam": 3, "light": 27}
-        encoder = ResnetEncoder(sum(widths.values())).eval()
-        expression_encoder = None
+            load_chumpy()
+            config = SimpleNamespace(n_shape=100, n_exp=50, flame_model_path=basis,
+                                     flame_lmk_embedding_path=embedding)
+            widths = {"shape": 100, "tex": 50, "exp": 50, "pose": 6, "cam": 3, "light": 27}
+            encoder = ResnetEncoder(sum(widths.values())).eval()
+            expression_encoder = None
+            if variant == "emoca":
+                from ..models.safe_ckpt import load_state_dict
+                state = load_state_dict(EMOCA_CKPT)
+                part = lambda prefix: {k[len(prefix):]: v for k, v in state.items() if k.startswith(prefix)}  # noqa: E731
+                encoder.load_state_dict(part("deca.E_flame."), strict=True)
+                expression_encoder = ResnetEncoder(50).eval()
+                expression_encoder.load_state_dict(part("deca.E_expression."), strict=True)
+                expression_encoder.to(device)
+                del state
+            else:
+                checkpoint = torch.load(DECA / "data/deca_model.tar", map_location="cpu", weights_only=True)
+                encoder.load_state_dict(checkpoint["E_flame"], strict=True)
+                del checkpoint
+            encoder.to(device)
+            flame = FLAME(config).eval().to(device)
+            _MODELS[_key] = (encoder, expression_encoder, flame, widths,)
+        encoder, expression_encoder, flame, widths, = _MODELS[_key]
         if variant == "emoca":
-            from ..models.safe_ckpt import load_state_dict
-            state = load_state_dict(EMOCA_CKPT)
-            part = lambda prefix: {k[len(prefix):]: v for k, v in state.items() if k.startswith(prefix)}  # noqa: E731
-            encoder.load_state_dict(part("deca.E_flame."), strict=True)
-            expression_encoder = ResnetEncoder(50).eval()
-            expression_encoder.load_state_dict(part("deca.E_expression."), strict=True)
-            expression_encoder.to(device)
-            del state
             metadata.update(emoca_checkpoint=str(EMOCA_CKPT.name), emoca_expression_encoder=True)
-        else:
-            checkpoint = torch.load(DECA / "data/deca_model.tar", map_location="cpu", weights_only=True)
-            encoder.load_state_dict(checkpoint["E_flame"], strict=True)
-            del checkpoint
-        encoder.to(device)
-        flame = FLAME(config).eval().to(device)
     with timed_forward(device, metadata):
         output = dict(zip(widths, encoder(tensor.to(device)).split(tuple(widths.values()), dim=1)))
         if expression_encoder is not None:
@@ -330,28 +339,32 @@ def fit_mica(image_path, run_dir, metadata):
     basis = MICA / "data/FLAME2020/generic_model.pkl"
     embedding = MICA / "data/FLAME2020/landmark_embedding.npy"
     with stage("checkpoint_load"):
-        sys.path.insert(0, str(MICA))
-        from models.arcface import Arcface
-        from models.generator import Generator
+        _key = ("mica", str(device))
+        if _key not in _MODELS:
+            sys.path.insert(0, str(MICA))
+            from models.arcface import Arcface
+            from models.generator import Generator
 
-        load_chumpy()
-        config = SimpleNamespace(n_shape=300, flame_model_path=basis,
-                                 flame_lmk_embedding_path=embedding)
-        arcface = Arcface().eval()
-        generator = Generator(512, 300, 300, 3, config, "cpu").eval()
-        # The staged official release contains validation metadata with NumPy arrays.
-        checkpoint = torch.load(MICA / "data/pretrained/mica.tar", map_location="cpu",
-                                weights_only=False)
-        arcface.load_state_dict(checkpoint["arcface"], strict=True)
-        flame = generator.generator
-        weights = checkpoint["flameModel"]
-        for buffer in ("faces_tensor", "full_lmk_faces_idx", "full_lmk_bary_coords"):
-            torch.testing.assert_close(getattr(flame, buffer), weights[f"generator.{buffer}"],
-                                       rtol=0, atol=0)
-        generator.load_state_dict(weights, strict=True)
-        del checkpoint, weights
-        arcface.to(device)
-        generator.to(device)
+            load_chumpy()
+            config = SimpleNamespace(n_shape=300, flame_model_path=basis,
+                                     flame_lmk_embedding_path=embedding)
+            arcface = Arcface().eval()
+            generator = Generator(512, 300, 300, 3, config, "cpu").eval()
+            # The staged official release contains validation metadata with NumPy arrays.
+            checkpoint = torch.load(MICA / "data/pretrained/mica.tar", map_location="cpu",
+                                    weights_only=False)
+            arcface.load_state_dict(checkpoint["arcface"], strict=True)
+            flame = generator.generator
+            weights = checkpoint["flameModel"]
+            for buffer in ("faces_tensor", "full_lmk_faces_idx", "full_lmk_bary_coords"):
+                torch.testing.assert_close(getattr(flame, buffer), weights[f"generator.{buffer}"],
+                                           rtol=0, atol=0)
+            generator.load_state_dict(weights, strict=True)
+            del checkpoint, weights
+            arcface.to(device)
+            generator.to(device)
+            _MODELS[_key] = (arcface, generator, flame,)
+        arcface, generator, flame, = _MODELS[_key]
     with timed_forward(device, metadata):
         identity = torch.nn.functional.normalize(arcface(torch.from_numpy(blob).to(device)))
         neutral, shape = generator(identity)
@@ -370,55 +383,72 @@ def fit_mica(image_path, run_dir, metadata):
                         mesh_vertices=len(vertices), mesh_faces=len(faces), camera=None)
 
 
+def fit_one(model_id, image, run_dir, *, batch=False):
+    """Fit one image into run_dir and write baseline_result.json (models stay cached in batch mode)."""
+    started = perf_counter()
+    first = not _MODELS
+    result = {"fit_status": "failed", "error_stage": None, "message": None, "seconds": None}
+    try:
+        with stage("preflight"):
+            source = _model_metadata(model_id)
+            if source["revision"] != source["expected_revision"]:
+                raise ValueError(f"Unexpected source revision {source['revision']}")
+            if source["missing_assets"]:
+                raise ValueError(f"Missing assets: {source['missing_assets']}")
+            if not image.is_file():
+                raise ValueError(f"Missing input image: {image}")
+            runtime = probe_runtime(model_id)
+            result.update(runtime)
+            if model_id != "pixel3dmm" and not runtime["runtime_ready"]:
+                raise ValueError(json.dumps(runtime["dependency_errors"]))
+            (run_dir / "native").mkdir(parents=True)
+            import torch
+            torch.set_num_threads(4)
+        if model_id == "pixel3dmm":
+            from .baseline_pixel3dmm import fit_pixel3dmm
+            fit_pixel3dmm(image, run_dir, result)
+        else:
+            function = {"deca": fit_deca, "mica": fit_mica,
+                        "emoca": lambda *a: fit_deca(*a, variant="emoca")}[model_id]
+            result.update(fit_device=requested_device(model_id), detector_device="cpu")
+            function(image, run_dir, result)
+        result.update(fit_status="success", seconds=perf_counter() - started)
+    except Exception as error:
+        traceback.print_exc()
+        result.update(error_stage=getattr(error, "stage", "worker"), message=str(error),
+                      failure_elapsed_seconds=perf_counter() - started)
+    if batch:
+        result["timing_scope"] = ("batch_first_image_including_model_load" if first
+                                  else "batch_cached_models_preprocess_inference_export")
+    path = run_dir / "baseline_result.json"
+    temp = path.with_suffix(".json.tmp")
+    temp.write_text(json.dumps(result, allow_nan=False, indent=2), encoding="utf-8")
+    temp.replace(path)
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_id", choices=SPECS)
     parser.add_argument("image", nargs="?", type=Path)
     parser.add_argument("run_dir", nargs="?", type=Path)
     parser.add_argument("--qualify", action="store_true")
+    parser.add_argument("--batch", type=Path, help="JSON list of [image, run_dir]; models load once")
     args = parser.parse_args()
     if args.qualify:
         with contextlib.redirect_stdout(sys.stderr):
             result = probe_runtime(args.model_id)
         print(json.dumps(result))
         return
+    if args.batch:
+        items = json.loads(args.batch.read_text(encoding="utf-8"))
+        for index, (image, run_dir) in enumerate(items, 1):
+            result = fit_one(args.model_id, Path(image), Path(run_dir), batch=True)
+            print(f"[batch] {index}/{len(items)} {result['fit_status']} {Path(run_dir).name}", flush=True)
+        return
     if args.image is None or args.run_dir is None:
         parser.error("Specify an image and run directory")
-    started = perf_counter()
-    result = {"fit_status": "failed", "error_stage": None, "message": None, "seconds": None}
-    try:
-        with stage("preflight"):
-            source = _model_metadata(args.model_id)
-            if source["revision"] != source["expected_revision"]:
-                raise ValueError(f"Unexpected source revision {source['revision']}")
-            if source["missing_assets"]:
-                raise ValueError(f"Missing assets: {source['missing_assets']}")
-            if not args.image.is_file():
-                raise ValueError(f"Missing input image: {args.image}")
-            runtime = probe_runtime(args.model_id)
-            result.update(runtime)
-            if args.model_id != "pixel3dmm" and not runtime["runtime_ready"]:
-                raise ValueError(json.dumps(runtime["dependency_errors"]))
-            (args.run_dir / "native").mkdir()
-            import torch
-            torch.set_num_threads(4)
-        if args.model_id == "pixel3dmm":
-            from .baseline_pixel3dmm import fit_pixel3dmm
-            fit_pixel3dmm(args.image, args.run_dir, result)
-        else:
-            function = {"deca": fit_deca, "mica": fit_mica,
-                        "emoca": lambda *a: fit_deca(*a, variant="emoca")}[args.model_id]
-            result.update(fit_device=requested_device(args.model_id), detector_device="cpu")
-            function(args.image, args.run_dir, result)
-        result.update(fit_status="success", seconds=perf_counter() - started)
-    except Exception as error:
-        traceback.print_exc()
-        result.update(error_stage=getattr(error, "stage", "worker"), message=str(error),
-                      failure_elapsed_seconds=perf_counter() - started)
-    path = args.run_dir / "baseline_result.json"
-    temp = path.with_suffix(".json.tmp")
-    temp.write_text(json.dumps(result, allow_nan=False, indent=2), encoding="utf-8")
-    temp.replace(path)
+    fit_one(args.model_id, args.image, args.run_dir)
 
 
 if __name__ == "__main__":

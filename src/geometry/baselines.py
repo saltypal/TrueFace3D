@@ -190,3 +190,38 @@ def run_baseline(model_id: str, image_path: Path, run_dir: Path, *, timeout=2400
     temp.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
     temp.replace(result_file)
     return result
+
+
+def run_baseline_batch(model_id: str, items, log_dir: Path, *, timeout=3600) -> list[dict]:
+    """Fit many (image_path, run_dir) pairs in ONE worker process, so the model loads once.
+
+    Each run_dir ends with the same baseline_result.json / native / neutral.obj files as run_baseline.
+    """
+    metadata = _model_metadata(model_id)
+    items = [(Path(i).resolve(), Path(r).resolve()) for i, r in items]
+    for _, run_dir in items:
+        run_dir.mkdir(parents=True, exist_ok=True)
+        if any((run_dir / n).exists() for n in ("native", "neutral.obj", "baseline_result.json")):
+            raise FileExistsError(f"Comparator attempt already exists in {run_dir}")
+    log_dir = Path(log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    batch_file = log_dir / f"batch_{model_id}_{int(time() * 1000)}.json"
+    batch_file.write_text(json.dumps([[str(i), str(r)] for i, r in items]), encoding="utf-8")
+    error = None
+    with (log_dir / "comparator.stdout.log").open("ab") as stdout, (log_dir / "comparator.stderr.log").open("ab") as stderr:
+        try:
+            _invoke(model_id, "--batch", batch_file, stdout=stdout, stderr=stderr,
+                    timeout=timeout, deadline=time() + timeout)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            error = str(exc)
+    results = []
+    for _, run_dir in items:
+        result_file = run_dir / "baseline_result.json"
+        result = {**metadata, "fit_status": "failed", "seconds": None, "mesh_unit_to_mm": None}
+        if result_file.is_file():
+            result.update(json.loads(result_file.read_text(encoding="utf-8")))
+        else:
+            result.update(error_stage="worker", message=error or "batch worker stopped before this image")
+        result_file.write_text(json.dumps(result, indent=2, allow_nan=False), encoding="utf-8")
+        results.append(result)
+    return results

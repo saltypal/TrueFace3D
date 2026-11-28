@@ -15,7 +15,7 @@ import json
 import subprocess
 from pathlib import Path
 
-DATASET_ID = "satyapaladugu/facescape-c"
+DATASET_ID = "satyapaladugu/face1-data"
 
 README = """# FaceScape-C (private; FaceScape license applies)
 
@@ -41,7 +41,7 @@ def main(argv=None):
     if not (a.root / "manifest_clean.csv").exists():
         raise SystemExit(f"{a.root} is not a built FaceScape-C folder")
     (a.root / "README.md").write_text(README)
-    meta = {"title": "FaceScape-C", "id": DATASET_ID, "licenses": [{"name": "other"}],
+    meta = {"title": "Face1 Data", "id": DATASET_ID, "licenses": [{"name": "other"}],
             "subtitle": "Private: FaceScape photos + TU ground truth + degradations"}
     (a.root / "dataset-metadata.json").write_text(json.dumps(meta, indent=1))
     size = sum(p.stat().st_size for p in a.root.rglob("*") if p.is_file()) / 1e9

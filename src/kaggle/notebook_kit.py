@@ -15,7 +15,7 @@ import nbformat as nbf
 
 REPO_URL = "https://github.com/saltypal/TrueFace3D.git"
 BRANCH = "facescape-c"
-DATASET = "satyapaladugu/facescape-c"          # private, shared with account B
+DATASET = "satyapaladugu/face1-data"          # private, shared with account B
 WHEELS = "satyapaladugu/mesha-output"          # cached CUDA wheels (lesson 2)
 
 

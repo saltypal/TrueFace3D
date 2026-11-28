@@ -103,13 +103,13 @@ plt.show()
 CHECKS["all views within ±15 deg of target"] = bool((cams.yaw_error.abs() <= C.VIEW_MAX_YAW_ERROR).all())
 CHECKS["no crop upscaled (source face >= 480 px)"] = bool((cams.face_px_source >= C.FACE_PX).all())
 CHECKS["no black padding in crops"] = int(cams.padded.sum()) == 0
-CHECKS["face width in crop 480-560 px"] = bool(cams.face_px.between(C.FACE_PX - 1, 560).all())
+CHECKS["face width in crop 480-600 px"] = bool(cams.face_px.between(C.FACE_PX - 1, 600).all())
 """),
     md("""
 **Reading this.** `face_px_source` is the face width in the original photo. It must be at least 480 px, so the
 768 px crop is always a *downscale* of a real photo, never an upscale. When a person sat close to a portrait
 camera, the 1.6 × jaw-width square does not fit in the photo. The largest square that fits is used instead, so
-the face is a little larger in the crop (`face_px` up to about 550). Degradations scale with each image's
+the face is a little larger in the crop (`face_px` up to about 580, for subject 352). Degradations scale with each image's
 `face_px`. The rig's left cameras sit near 50° (a
 few near 37°), so `left45` is really "left 37-52°". Camera distance is about 1.6 m.
 """),

@@ -96,8 +96,8 @@ GATE = fj.read_records(GATE_OUT)
 print("[gate]", [(g["image_id"], g["fit_status"], g.get("wall_seconds"), g.get("message", "")[:300]) for g in GATE], flush=True)
 print((OUT / "logs_gate" / "worker_gpu0.log").read_text()[-3000:])
 assert GATE and GATE[0]["fit_status"] == "success", "gate fit failed; see the log above"'''),
-        md("## 6. Full run on both GPUs (stops starting new fits after 11 h so outputs are saved)"),
-        code('''DEADLINE = T0 + 11 * 3600
+        md("## 6. Full run on both GPUs (stops starting new fits after 10.25 h so scoring and the zip finish inside 12 h)"),
+        code('''DEADLINE = T0 + 10.25 * 3600
 JOBS = fj.make_jobs(ROWS, [MODEL], OUT)
 print(f"[run] {len(JOBS)} jobs ({sum(len(j['items']) for j in JOBS)} fits) on 2 GPUs; "
       f"deadline {time.strftime('%H:%M', time.localtime(DEADLINE))}", flush=True)
@@ -114,7 +114,22 @@ display(R.groupby("fit_status").wall_seconds.describe().round(1))
 if "error_stage" in R:
     display(R[R.fit_status != "success"].groupby(["error_stage"]).size().rename("failures"))
 print("[result] fits with priors.npz:", int(R.get("has_priors", pd.Series(dtype=bool)).fillna(False).sum()), flush=True)'''),
-        md("## 8. Preview: subject 344 (publishable), front view, neutral"),
+        md("""## 8. Scan error against the TU ground truth (CPU, all cores)
+Face region of the TU mesh; 7-landmark similarity init + similarity ICP; error = TU vertex to predicted surface, mm.
+`posed` uses the expression mesh (MICA: neutral only); `neutral` scores the neutral mesh on expression-1 photos."""),
+        code('''try:
+    from src.facescape.score import score_folder
+    t = time.time()
+    S = score_folder(OUT / "fits", OUT / "scores.csv")
+    print(f"[score] {len(S)} rows in {(time.time() - t) / 60:.1f} min; status:", S.score_status.value_counts().to_dict(), flush=True)
+    ok = S[S.score_status == "success"].copy()
+    ok["profile"] = ok.condition.str.split("_").str[0]
+    ok["severity"] = ok.condition.str.extract(r"_s(\\d)").fillna(0).astype(int)
+    display(ok.pivot_table(index=["protocol", "profile"], columns="severity", values="mean_mm", aggfunc="mean").round(3))
+    display(ok.groupby("protocol")[["mean_mm", "median_mm", "p90_mm", "landmark7_mm"]].mean().round(3))
+except Exception as exc:  # scoring must never cost the fits: the zip cell still runs
+    import traceback; traceback.print_exc(); print("[score] FAILED, fits are kept; score locally", flush=True)'''),
+        md("## 9. Preview: subject 344 (publishable), front view, neutral"),
         code('''import matplotlib.pyplot as plt, cv2
 pick = ["clean", "C01_s3", "C04_s3", "C07_s3", "R2_s3"]
 img_id = "344_01_front"
@@ -129,7 +144,7 @@ for j, cond in enumerate(pick):
         ax[1, j].imshow(cv2.cvtColor(cv2.imread(str(shots[0])), cv2.COLOR_BGR2RGB))
     ax[0, j].set_title(cond); [a.axis("off") for a in ax[:, j]]
 plt.tight_layout(); plt.savefig(OUT / "preview_344.png", dpi=90); plt.show()'''),
-        md("## 9. Zip every output (fit bundles, records, quality, logs)"),
+        md("## 10. Zip every output (fit bundles, records, quality, logs)"),
         code(zip_cell(out, exclude=("*.whl", "__pycache__"), move=model.startswith("vit"))),
     ]
 

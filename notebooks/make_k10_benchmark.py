@@ -18,8 +18,8 @@ sys.path.insert(0, str(REPO))
 from src.kaggle.notebook_kit import clone_cell, code, md, run_info_cell, save, zip_cell  # noqa: E402
 
 NEEDS = {"vits": ("nvdiffrast.torch", "flame_solver"), "vitb": ("nvdiffrast.torch", "flame_solver"),
-         "deca": (), "mica": ()}
-NAMES = {"vits": "RealDenseFace ViT-S", "vitb": "RealDenseFace ViT-B", "deca": "DECA", "mica": "MICA"}
+         "deca": (), "emoca": (), "mica": ()}
+NAMES = {"vits": "RealDenseFace ViT-S", "vitb": "RealDenseFace ViT-B", "deca": "DECA", "emoca": "EMOCA v2", "mica": "MICA"}
 
 
 def cells(model: str, expressions=(1, 2, 3, 19), tag=""):
@@ -59,6 +59,10 @@ for m in ("nvdiffrast.torch", "flame_solver", "pytorch3d"):
         IMPORTS[m] = f"{{type(e).__name__}}: {{e}}"[:200]
 print("[import]", IMPORTS, flush=True)
 (OUT / "imports.json").write_text(json.dumps(IMPORTS, indent=1))
+ck = sorted(Path("/kaggle/input").glob("**/EMOCA_v2_lr_mse_20.ckpt")) if Path("/kaggle/input").is_dir() else []
+if ck:
+    os.environ["TRUEFACE3D_EMOCA_CKPT"] = str(ck[0]); print("[setup] EMOCA checkpoint", ck[0], flush=True)
+assert MODEL != "emoca" or ck, "attach the tf3d-emoca-v2 dataset"
 for m in {NEEDS[model]!r}:
     assert IMPORTS[m] == "ok", f"{{MODEL}} needs {{m}}: {{IMPORTS[m]}}"'''),
         md("## 3. Dataset and benchmark scope"),
@@ -155,7 +159,7 @@ def main():
     for model in ("vits", "vitb"):
         for exprs, tag in (((1, 2), "_e1-2"), ((3, 19), "_e3-19")):
             written.append(save(REPO / "notebooks" / "kaggle" / f"K10_{model}{tag}.ipynb", cells(model, exprs, tag)))
-    for model in ("deca", "mica"):
+    for model in ("deca", "emoca", "mica"):
         written.append(save(REPO / "notebooks" / "kaggle" / f"K10_{model}.ipynb", cells(model)))
     for p in written:
         print(p)

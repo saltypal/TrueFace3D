@@ -28,10 +28,10 @@ def code(text: str):
 
 
 def clone_cell(branch: str = BRANCH) -> str:
-    return f'''# Reset: always start from a fresh clone of the latest commit (never a stale copy).
+    return f'''# Reset: fresh clone of the latest commit, outside /kaggle/working so the code is not saved as output.
 import os, shutil, subprocess, sys, time, json
 REPO_URL, BRANCH = "{REPO_URL}", "{branch}"
-REPO = "/kaggle/working/TrueFace3D" if os.path.isdir("/kaggle") else os.path.abspath("_clone_TrueFace3D")
+REPO = "/tmp/TrueFace3D" if os.path.isdir("/kaggle") else os.path.abspath("_clone_TrueFace3D")
 shutil.rmtree(REPO, ignore_errors=True)
 subprocess.run(["git", "clone", "--depth", "1", "--branch", BRANCH, REPO_URL, REPO], check=True)
 COMMIT = subprocess.run(["git", "-C", REPO, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()

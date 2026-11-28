@@ -121,7 +121,7 @@ def _clean_tuple(job: tuple[int, int, str, str]) -> tuple[list[dict], list[dict]
                "units": "mm", "frames": "X_cam = R @ X_tu + t; pixel = K @ X_cam (OpenCV, undistorted)",
                "view_tag": tag, "source_view": v, "yaw": row["yaw"], "pitch": row["pitch"],
                "distance_mm": row["distance_mm"], "source_size": [row["width"], row["height"]],
-               "face_px_source": crop.face_px_source, "face_px": C.FACE_PX, "face_width_mm": width_mm,
+               "face_px_source": crop.face_px_source, "face_px": crop.face_px, "face_width_mm": width_mm,
                "crop_box_source": list(crop.box), "crop_scale": crop.scale, "padded": crop.padded}
         (vdir / "camera.json").write_text(json.dumps(cam, indent=1))
         rel = vdir.relative_to(root)
@@ -223,7 +223,8 @@ def _degrade_one(job: tuple[dict, str, int, str]) -> dict:
     root = Path(root)
     clean = read_rgb(root / row["path"])
     seed = condition_seed(C.BASE_SEED, row["image_id"], pid, sev)
-    img, meta = apply(clean, pid, sev, face_px=C.FACE_PX, seed=seed)
+    face_px = json.loads((root / row["camera"]).read_text())["face_px"]
+    img, meta = apply(clean, pid, sev, face_px=face_px, seed=seed)
     rel = Path(row["path"]).parent / "degraded" / f"{pid}_s{sev}.png"
     write_png(root / rel, img)
     out = dict(row)

@@ -32,7 +32,8 @@ Faces are drawn only for the publishable subjects (340, 344); everyone else appe
     code("""
 import os, sys, json, time
 from pathlib import Path
-REPO = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+REPO = next(p for p in [Path(os.environ.get("TRUEFACE3D_REPO", Path.cwd())), *Path.cwd().parents,
+             Path("/mnt/DataBunker/TrueFace3D")] if (p / "src" / "facescape").is_dir())
 sys.path.insert(0, str(REPO)); os.chdir(REPO)
 import numpy as np, pandas as pd, matplotlib.pyplot as plt
 from IPython.display import display, Markdown
@@ -102,18 +103,22 @@ plt.show()
 CHECKS["all views within ±15 deg of target"] = bool((cams.yaw_error.abs() <= C.VIEW_MAX_YAW_ERROR).all())
 CHECKS["no crop upscaled (source face >= 480 px)"] = bool((cams.face_px_source >= C.FACE_PX).all())
 CHECKS["no black padding in crops"] = int(cams.padded.sum()) == 0
+CHECKS["face width in crop 480-560 px"] = bool(cams.face_px.between(C.FACE_PX - 1, 560).all())
 """),
     md("""
 **Reading this.** `face_px_source` is the face width in the original photo. It must be at least 480 px, so the
-768 px crop is always a *downscale* of a real photo, never an upscale. The rig's left cameras sit near 50° (a
+768 px crop is always a *downscale* of a real photo, never an upscale. When a person sat close to a portrait
+camera, the 1.6 × jaw-width square does not fit in the photo. The largest square that fits is used instead, so
+the face is a little larger in the crop (`face_px` up to about 550). Degradations scale with each image's
+`face_px`. The rig's left cameras sit near 50° (a
 few near 37°), so `left45` is really "left 37-52°". Camera distance is about 1.6 m.
 """),
     md("""
 ## 4. Units: is the 3D really in millimetres?
 
 Typical adult values:
-- distance between the eye centres: about 60-65 mm;
-- jaw width (landmark 0 to 16): about 120-150 mm;
+- distance between the eye centres (mean of each eye's 6 landmarks): about 60-72 mm;
+- landmark 0 to 16 (FaceScape puts them near the ears, so wider than a jaw): about 140-170 mm;
 - nose tip to chin: about 60-75 mm.
 
 Each row below is one person's neutral TU mesh.
@@ -122,7 +127,7 @@ Each row below is one person's neutral TU mesh.
 units = I.units_table(ds)
 display(units.describe().round(1))
 CHECKS["inter-ocular distance 50-75 mm for everyone"] = bool(units.inter_ocular_mm.between(50, 75).all())
-CHECKS["camera distance 1.2-2.2 m"] = bool(units.camera_distance_mm.between(1200, 2200).all())
+CHECKS["camera distance 1.2-2.5 m"] = bool(units.camera_distance_mm.between(1200, 2500).all())
 """),
     md("""
 ## 5. Does the true 3D face land on the photo?

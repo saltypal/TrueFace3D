@@ -17,6 +17,7 @@ class Crop:
     box: tuple[int, int, int]  # x0, y0, side in the undistorted source image (pixels)
     scale: float             # crop pixels per source pixel
     face_px_source: float    # jaw-to-jaw face width in the source photo (pixels)
+    face_px: float           # jaw-to-jaw face width in the crop (FACE_PX unless the photo was too narrow)
     padded: bool             # crop ran past the photo border
 
 
@@ -38,6 +39,8 @@ def crop_photo(photo_rgb: np.ndarray, k: np.ndarray, dist: np.ndarray, r: np.nda
     side = int(round(face_px_source * CROP_PX / FACE_PX))
     x0, y0 = int(round(cx - side / 2)), int(round(cy - side / 2))
     h, w = und.shape[:2]
+    side = min(side, h, w)   # close faces in portrait frames: largest square that fits, face appears larger
+    x0, y0 = int(round(cx - side / 2)), int(round(cy - side / 2))
     # slide the window inside the photo (face slightly off-centre) rather than adding black borders
     if side <= w:
         x0 = min(max(x0, 0), w - side)
@@ -54,4 +57,4 @@ def crop_photo(photo_rgb: np.ndarray, k: np.ndarray, dist: np.ndarray, r: np.nda
     kc[1, 1] *= s
     kc[0, 2] = (k[0, 2] - x0 + 0.5) * s - 0.5
     kc[1, 2] = (k[1, 2] - y0 + 0.5) * s - 0.5
-    return Crop(image, kc, (x0, y0, side), s, float(face_px_source), bool(pad))
+    return Crop(image, kc, (x0, y0, side), s, float(face_px_source), float(face_px_source * s), bool(pad))

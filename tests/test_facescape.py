@@ -87,3 +87,27 @@ def test_built_dataset_landmarks_project_inside_crops():
         uv = case.project(case.gt_vertices_camera())[lm]
         assert (uv > 0).all() and (uv < C.CROP_PX).all(), case.image_id
         assert abs(case.camera["yaw"] - C.VIEWS[case.view]) <= C.VIEW_MAX_YAW_ERROR
+
+
+def test_crop_fits_inside_narrow_photo_without_padding():
+    # close face in a portrait frame: 1.6 x jaw width would exceed the photo width
+    k = np.array([[4000.0, 0, 1448], [0, 4000.0, 2172], [0, 0, 1]])
+    photo = np.zeros((4344, 2896, 3), np.uint8)
+    r, t = np.eye(3), np.array([0.0, 0.0, 350.0])
+    crop = crop_photo(photo, k, np.zeros(5), r, t, np.zeros(3), 160.0)
+    assert crop.face_px_source * C.CROP_PX / C.FACE_PX > 2896
+    assert crop.box[2] == 2896 and not crop.padded
+    assert crop.face_px == pytest.approx(crop.face_px_source * C.CROP_PX / 2896)
+
+
+def test_degraded_camera_uses_pixel_centre_convention(tmp_path):
+    from src.facescape.dataset import Case
+
+    k = np.array([[1000.0, 0, 383.5], [0, 1000.0, 383.5], [0, 0, 1]])
+    (tmp_path / "cam.json").write_text(json.dumps({"K": k.tolist(), "R": np.eye(3).tolist(), "t": [0, 0, 1000]}))
+    s = 96 / 768
+    meta = {"clean_to_degraded": [[s, 0, 0], [0, s, 0], [0, 0, 1]]}
+    case = Case(tmp_path, {"camera": "cam.json", "meta": json.dumps(meta)})
+    p = np.array([[10.0, -20.0, 1000.0]])
+    u_clean = project(p, k)
+    np.testing.assert_allclose(case.project(p), (u_clean + 0.5) * s - 0.5, atol=1e-9)

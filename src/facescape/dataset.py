@@ -42,7 +42,10 @@ class Case:
         k = np.asarray(cam["K"])
         meta = json.loads(self.row["meta"]) if self.row.get("meta") else {}
         if "clean_to_degraded" in meta:          # degraded image may be smaller than the clean crop
-            k = np.asarray(meta["clean_to_degraded"]) @ k
+            m = np.asarray(meta["clean_to_degraded"], dtype=np.float64)   # pixel-edge convention scale
+            sx, sy = m[0, 0], m[1, 1]
+            # OpenCV pixel centres sit at integers: u' = (u + 0.5) * s - 0.5
+            k = np.array([[sx, 0, 0.5 * sx - 0.5], [0, sy, 0.5 * sy - 0.5], [0, 0, 1.0]]) @ k
         cam["K_image"] = k
         return cam
 

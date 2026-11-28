@@ -108,7 +108,7 @@ def camera_stats(ds: FaceScapeC) -> pd.DataFrame:
                      "source_view": cam["source_view"], "yaw": cam["yaw"], "yaw_error": cam["yaw"] - C.VIEWS[case.view],
                      "pitch": cam["pitch"], "distance_mm": cam["distance_mm"], "face_px_source": cam["face_px_source"],
                      "megapixels": cam["source_size"][0] * cam["source_size"][1] / 1e6, "padded": cam["padded"],
-                     "face_width_mm": cam["face_width_mm"]})
+                     "face_width_mm": cam["face_width_mm"], "face_px": cam["face_px"]})
     return pd.DataFrame(rows)
 
 
